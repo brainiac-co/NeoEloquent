@@ -3,8 +3,11 @@
 namespace Vinelab\NeoEloquent\Tests\Eloquent;
 
 use Illuminate\Support\Collection;
+use Laudis\Neo4j\Types\CypherList;
+use Laudis\Neo4j\Types\CypherMap;
 use Mockery as M;
 use Vinelab\NeoEloquent\Eloquent\Builder;
+use Vinelab\NeoEloquent\Query\Grammars\CypherGrammar;
 use Vinelab\NeoEloquent\Tests\TestCase;
 
 class EloquentBuilderTest extends TestCase
@@ -359,29 +362,32 @@ class EloquentBuilderTest extends TestCase
 
     public function testFindingById()
     {
-        $resultSet = M::mock('Everyman\Neo4j\Query\ResultSet');
-        $resultSet->shouldReceive('getColumns')->withNoArgs()->andReturn(['id', 'name', 'age']);
+        $this->query->shouldReceive('getGrammar')->andReturn(new CypherGrammar());
+
+        $resultSet = new CypherList([ new CypherMap(['node' => new \Laudis\Neo4j\Types\Node(1, new CypherList(), new CypherMap())])]);
 
         $this->query->shouldReceive('where')->once()->with('id(n)', '=', 1);
         $this->query->shouldReceive('from')->once()->with('Model')->andReturn(['Model']);
         $this->query->shouldReceive('take')->once()->with(1)->andReturn($this->query);
         $this->query->shouldReceive('get')->once()->with(['*'])->andReturn($resultSet);
 
-        $resultSet->shouldReceive('valid')->once()->andReturn(false);
-
-        $this->model->shouldReceive('getKeyName')->twice()->andReturn('id');
+        $this->model->shouldReceive('getKeyName')->times()->andReturn('id');
         $this->model->shouldReceive('getTable')->once()->andReturn('Model');
         $this->model->shouldReceive('getConnectionName')->once()->andReturn('default');
         $this->model->shouldReceive('hasNamedScope')->once()->andReturn(false);
 
-        $collection = new \Illuminate\Support\Collection([M::mock('Everyman\Neo4j\Query\ResultSet')]);
+        $result = M::mock('Neoxygen\NeoClient\Formatter\Result');
+        $collection = new \Illuminate\Support\Collection(array($result));
         $this->model->shouldReceive('newCollection')->once()->andReturn($collection);
+        $this->model->shouldReceive('getAttributes')->once()->andReturn([]);
+        $this->model->shouldReceive('setConnection')->once();
+        $this->model->shouldReceive('newFromBuilder')->once()->andReturn($this->model);
 
         $this->builder->setModel($this->model);
 
         $result = $this->builder->find(1);
 
-        $this->assertInstanceOf('Everyman\Neo4j\Query\ResultSet', $result);
+        $this->assertInstanceOf('Neoxygen\NeoClient\Formatter\Result', $result);
     }
 
     public function testFindingByIdWithProperties()
@@ -420,7 +426,7 @@ class EloquentBuilderTest extends TestCase
         $collection = new \Illuminate\Support\Collection([$user]);
 
         $this->model->shouldReceive('newCollection')->once()->andReturn($collection)
-                    ->shouldReceive('getKeyName')->twice()->andReturn('id')
+                    ->shouldReceive('getKeyName')->times(3)->andReturn('id')
                     ->shouldReceive('getTable')->once()->andReturn('Model')
                     ->shouldReceive('hasNamedScope')->once()->andReturn(false)
                     ->shouldReceive('getConnectionName')->once()->andReturn('default')
@@ -431,6 +437,7 @@ class EloquentBuilderTest extends TestCase
         $grammar = M::mock('Vinelab\NeoEloquent\Query\Grammars\CypherGrammar')->makePartial();
         $this->query->shouldReceive('getGrammar')->andReturn($grammar);
         // put things to the test
+        $this->model->shouldReceive('getAttributes')->once()->andReturn([]);
         $found = $this->builder->find($id, $properties);
 
         $this->assertInstanceOf('User', $found);
@@ -469,11 +476,13 @@ class EloquentBuilderTest extends TestCase
         $user->shouldReceive('setConnection')->twice()->with('default');
 
         $this->model->shouldReceive('getTable')->once()->andReturn('User')
+                    ->shouldReceive('getKeyName')->twice()->andReturn('id')
                     ->shouldReceive('getConnectionName')->once()->andReturn('default')
                     ->shouldReceive('newFromBuilder')->once()
                         ->with($results[0])->andReturn($user)
                     ->shouldReceive('newFromBuilder')->once()
-                        ->with($results[1])->andReturn($user);
+                        ->with($results[1])->andReturn($user)
+                    ->shouldReceive('getAttributes')->andReturn([]);
 
         $this->builder->setModel($this->model);
 
@@ -507,9 +516,11 @@ class EloquentBuilderTest extends TestCase
         $user->shouldReceive('setConnection')->once()->with('default');
 
         $this->model->shouldReceive('getTable')->once()->andReturn('User')
+                    ->shouldReceive('getKeyName')->once()->andReturn('id')
                     ->shouldReceive('getConnectionName')->once()->andReturn('default')
                     ->shouldReceive('newFromBuilder')->once()
-                        ->with($results)->andReturn($user);
+                        ->with($results)->andReturn($user)
+                    ->shouldReceive('getAttributes')->once()->andReturn([]);;
 
         $this->builder->setModel($this->model);
 
@@ -517,61 +528,6 @@ class EloquentBuilderTest extends TestCase
 
         $this->assertIsArray($models);
         $this->assertInstanceOf('User', $models[0]);
-    }
-
-    public function testExtractingPropertiesFromNode()
-    {
-        $properties = [
-            'id'         => 911,
-            'skin'       => 'white',
-            'username'   => 'eminem',
-            'occupation' => 'white nigga',
-        ];
-
-        $row = $this->createRowWithNodeAtIndex(0, $properties);
-        $row->shouldReceive('current')->once()->andReturn($row->offsetGet(0));
-
-        $this->model->shouldReceive('getTable')->once()->andReturn('Artist');
-
-        $this->query->shouldReceive('from')->once()->andReturn('Artist');
-
-        $this->builder->setModel($this->model);
-
-        $columns = array_map(function ($property) {
-            return 'n.'.$property;
-        }, array_keys($properties));
-
-        $attributes = $this->builder->getProperties($columns, $row);
-
-        $this->assertEquals($properties, $attributes);
-    }
-
-    public function testExtractingPropertiesOfChosenColumns()
-    {
-        $properties = [
-            'id'    => 'mothafucka',
-            'arms'  => 2,
-            'legs'  => 2,
-            'heads' => 1,
-            'eyes'  => 2,
-            'sex'   => 'male',
-        ];
-
-        $row = $this->createRowWithPropertiesAtIndex(0, $properties);
-        $row->shouldReceive('current')->once()->andReturn($row->offsetGet(0));
-
-        $this->model->shouldReceive('getTable')->once()->andReturn('Human:Male');
-
-        $this->query->columns = ['arms', 'legs'];
-        $this->query->shouldReceive('from')->once()->andReturn('Human:Male');
-
-        $this->builder->setModel($this->model);
-
-        $attributes = $this->builder->getProperties(['arms', 'legs'], $row, ['arms', 'legs']);
-
-        $expected = ['arms' => $properties['arms'], 'legs' => $properties['legs']];
-
-        $this->assertEquals($expected, $attributes);
     }
 
     public function testCheckingIsRelationship()
@@ -597,26 +553,32 @@ class EloquentBuilderTest extends TestCase
      */
     public function createNodeResultSet($data = [], $properties = [])
     {
-        $c = $this->getConnectionWithConfig('default');
-
-        $rows = [];
+        $result = [];
 
         if (is_array(reset($data))) {
-            foreach ($data as $index => $node) {
-                $rows[] = $this->createRowWithNodeAtIndex($index, $node);
+            foreach ($data as $index => $attributes) {
+                $result[] = new CypherMap(['node' => $this->createNode($attributes)]);
             }
         } else {
-            $rows[] = $this->createRowWithNodeAtIndex(0, $data);
+            $node = $this->createNode($data);
+            $result[] = new CypherMap(['node' => $node]);
         }
 
         // the ResultSet $result part
-        $result = [
-            'data'    => $rows,
-            'columns' => $properties,
-        ];
 
-        // create the result set
-        return new \Everyman\Neo4j\Query\ResultSet($c->getClient(), $result);
+        return new CypherList($result);
+    }
+
+    /**
+     * Get a row with a Node inside of it having $data as properties.
+     *
+     * @param array $data
+     *
+     * @return \Laudis\Neo4j\Types\Node
+     */
+    public function createNode(array $data)
+    {
+        return new \Laudis\Neo4j\Types\Node($data['id'], new CypherList(), new CypherMap($data));
     }
 
     /**

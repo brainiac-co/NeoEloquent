@@ -43,15 +43,15 @@ class MorphTo extends OneRelation
             $parentNode = $this->query->getQuery()->modelAsNode($this->parent->getTable());
             // Tell the query that we need the morph model and the relationship represented by CypherGrammar
             // statically with 'r'.
-            $this->query->select($this->relation, 'r');
+            $this->query->select($this->relationName, 'r');
             // Add morph mutation that will tell the parser about the property name on the Relationship that is holding
             // the class name of our morph model so that they can instantiate the correct one, and pass the relation
             // name as an indicator of the Node that has our morph attributes in the query.
-            $this->query->addMorphMutation($this->relation);
+            $this->query->addMorphMutation($this->relationName);
             // Set the parent node's placeholder as the RETURN key.
             $this->query->getQuery()->from = [$parentNode];
             // Build the MATCH ()<-[]-() Cypher clause.
-            $this->query->matchMorphOut($this->parent, $this->relation, $this->foreignKey, $this->parent->{$this->foreignKey});
+            $this->query->matchMorphOut($this->parent, $this->relationName, $this->foreignKey, $this->parent->{$this->foreignKey});
             // Add WHERE clause over the parent node's matching key = value.
             $this->query->where($this->foreignKey, '=', $this->parent->{$this->foreignKey});
         }
@@ -70,16 +70,16 @@ class MorphTo extends OneRelation
         $parentNode = $this->query->getQuery()->modelAsNode($this->parent->getTable());
         // Tell the query that we need the morph model and the relationship represented by CypherGrammar
         // statically with 'r'.
-        $this->query->select('r', $parentNode, $this->relation);
+        $this->query->select('r', $parentNode, $this->relationName);
         // Add morph mutation that will tell the parser about the property name on the Relationship that is holding
         // the class name of our morph model so that they can instantiate the correct one, and pass the relation
         // name as an indicator of the Node that has our morph attributes in the query.
         $this->query->addMutation($parentNode, $this->parent);
-        $this->query->addEagerMorphMutation($this->relation);
+        $this->query->addEagerMorphMutation($this->relationName);
         // Set the parent node's placeholder as the RETURN key.
         $this->query->getQuery()->from = [$parentNode];
         // Build the MATCH ()<-[]-() Cypher clause.
-        $this->query->matchMorphOut($this->parent, $this->relation, $this->foreignKey, $this->parent->{$this->foreignKey});
+        $this->query->matchMorphOut($this->parent, $this->relationName, $this->foreignKey, $this->parent->{$this->foreignKey});
         // Add WHERE clause over the parent node's matching keys [values...].
         $this->query->whereIn($this->foreignKey, $this->getKeys($models));
     }
@@ -118,7 +118,7 @@ class MorphTo extends OneRelation
      */
     public function getEdge(EloquentModel $model = null, $attributes = [])
     {
-        $model = (!is_null($model)) ? $model : $this->parent->{$this->relation};
+        $model = (!is_null($model)) ? $model : $this->parent->{$this->relationName};
 
         // Indicate a unique relationship since this involves one other model.
         $unique = true;

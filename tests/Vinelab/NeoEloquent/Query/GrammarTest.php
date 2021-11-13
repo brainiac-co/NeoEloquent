@@ -6,6 +6,7 @@ use Illuminate\Database\Query\Expression;
 use Illuminate\Database\Query\Processors\Processor;
 use Mockery as M;
 use Vinelab\NeoEloquent\Query\Builder;
+use Vinelab\NeoEloquent\Query\Grammars\CypherGrammar;
 use Vinelab\NeoEloquent\Query\Grammars\Grammar;
 use Vinelab\NeoEloquent\Tests\TestCase;
 
@@ -15,7 +16,7 @@ class GrammarTest extends TestCase
     {
         parent::setUp();
 
-        $this->grammar = new Grammar();
+        $this->grammar = new CypherGrammar();
         $this->processor = new Processor();
     }
 
@@ -29,13 +30,13 @@ class GrammarTest extends TestCase
     public function testGettingQueryParameterFromRegularValue()
     {
         $p = $this->grammar->parameter('value');
-        $this->assertEquals('{value}', $p);
+        $this->assertEquals('$value', $p);
     }
 
     public function testGettingIdQueryParameter()
     {
         $p = $this->grammar->parameter('id');
-        $this->assertEquals('{idn}', $p);
+        $this->assertEquals('$idn', $p);
     }
 
     public function testGettingIdParameterWithQueryBuilder()
@@ -43,26 +44,26 @@ class GrammarTest extends TestCase
         $query = M::mock('Vinelab\NeoEloquent\Query\Builder');
         $query->from = 'user';
         $this->grammar->setQuery($query);
-        $this->assertEquals('{iduser}', $this->grammar->parameter('id'));
+        $this->assertEquals('$iduser', $this->grammar->parameter('id'));
 
         $query->from = 'post';
-        $this->assertEquals('{idpost}', $this->grammar->parameter('id'));
+        $this->assertEquals('$idpost', $this->grammar->parameter('id'));
 
         $anotherQuery = M::mock('Vinelab\NeoEloquent\Query\Builder');
         $anotherQuery->from = 'crawler';
         $this->grammar->setQuery($anotherQuery);
-        $this->assertEquals('{idcrawler}', $this->grammar->parameter('id'));
+        $this->assertEquals('$idcrawler', $this->grammar->parameter('id'));
     }
 
     public function testGettingWheresParameter()
     {
-        $this->assertEquals('{confusing}', $this->grammar->parameter(['column' => 'confusing']));
+        $this->assertEquals('$confusing', $this->grammar->parameter(['column' => 'confusing']));
     }
 
     public function testGettingExpressionParameter()
     {
         $ex = new Expression('id');
-        $this->assertEquals('{idn}', $this->grammar->parameter($ex));
+        $this->assertEquals('$idn', $this->grammar->parameter($ex));
     }
 
     public function testPreparingLabel()
@@ -75,7 +76,7 @@ class GrammarTest extends TestCase
 
     public function testPreparingRelationName()
     {
-        $this->assertEquals('`rel_posted_post`:`POSTED`', $this->grammar->prepareRelation('POSTED', 'post'));
+        $this->assertEquals('rel_posted_post:POSTED', $this->grammar->prepareRelation('POSTED', 'post'));
     }
 
     public function testNormalizingLabels()
@@ -88,7 +89,7 @@ class GrammarTest extends TestCase
     {
         $mConnection = M::mock('Vinelab\NeoEloquent\Connection');
         $mConnection->shouldReceive('getClient');
-        $query = new Builder($mConnection, $this->grammar, $this->processor);
+        $query = new Builder($mConnection, $this->grammar);
 
         $this->assertEquals('n.value', $this->grammar->wrap('value'));
 
@@ -103,16 +104,22 @@ class GrammarTest extends TestCase
     {
         $this->assertEquals("'val'", $this->grammar->valufy('val'));
         $this->assertEquals("'\'va\\\l\''", $this->grammar->valufy("'va\l'"));
-        $this->assertEquals("'valu1', 'valu2', 'valu3'", $this->grammar->valufy(['valu1', 'valu2', 'valu3']));
-        $this->assertEquals('\'valu\\\1\', \'valu\\\'2\\\'\', \'val/u3\'', $this->grammar->valufy(['valu\1', "valu'2'", 'val/u3']));
         $this->assertEquals('\'\\\u123\'', $this->grammar->valufy('\u123'));
+        $this->assertEquals('\'val/u\'', $this->grammar->valufy('val/u'));
+    }
+
+    public function testValufyingArrays()
+    {
+        $this->assertEquals("['valu1','valu2','valu3']", $this->grammar->valufy(['valu1', 'valu2', 'valu3']));
+
+        $this->assertEquals('[\'valu\\\1\',\'valu\\\'2\\\'\',\'val/u3\']', $this->grammar->valufy(['valu\1', "valu'2'", 'val/u3']));
     }
 
     public function testGeneratingNodeIdentifier()
     {
         $this->assertEquals('n', $this->grammar->modelAsNode());
         $this->assertEquals('user', $this->grammar->modelAsNode('User'));
-        $this->assertEquals('rock', $this->grammar->modelAsNode(['Rock', 'Paper', 'Scissors']));
+        $this->assertEquals('rock_paper_scissors', $this->grammar->modelAsNode(['Rock', 'Paper', 'Scissors']));
     }
 
     public function testReplacingIdProperty()

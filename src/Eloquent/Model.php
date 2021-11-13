@@ -4,6 +4,7 @@ namespace Vinelab\NeoEloquent\Eloquent;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model as IlluminateModel;
+use Illuminate\Support\Str;
 use Vinelab\NeoEloquent\Eloquent\Builder as EloquentBuilder;
 use Vinelab\NeoEloquent\Eloquent\Relations\BelongsTo;
 use Vinelab\NeoEloquent\Eloquent\Relations\BelongsToMany;
@@ -477,7 +478,7 @@ abstract class Model extends IlluminateModel
         if (is_null($name)) {
             list(, $caller) = debug_backtrace(false);
 
-            $name = snake_case($caller['function']);
+            $name = Str::snake($caller['function']);
         }
 
         list($type, $id) = $this->getMorphs($name, $type, $id);
@@ -538,6 +539,7 @@ abstract class Model extends IlluminateModel
         // setup relations
         foreach ($relations as $relation => $values) {
             $related = $me->$relation()->getRelated();
+
             // if the relation holds the attributes directly instead of an array
             // of attributes, we transform it into an array of attributes.
             if ((!is_array($values) || Helpers::isAssocArray($values)) && !$values instanceof Collection) {
@@ -560,31 +562,40 @@ abstract class Model extends IlluminateModel
             }
         }
 
+        $existingModelsKeys = [];
         // fire 'creating' and 'saving' events on all models.
         foreach ($models as $relation => $related) {
             if (!is_array($related)) {
                 $related = [$related];
             }
+
             foreach ($related as $model) {
                 // we will fire model events on actual models, however attached models using IDs will not be considered.
-                if ($model instanceof self) {
-                    if ($model->fireModelEvent('creating') === false) {
+                if ($model instanceof Model) {
+                    if (!$model->exists && $model->fireModelEvent('creating') === false) {
                         return false;
                     }
+
+                    if($model->exists) {
+                        $existingModelsKeys[] = $model->getKey();
+                    }
+
                     if ($model->fireModelEvent('saving') === false) {
                         return false;
                     }
+                } else {
+                    $existingModelsKeys[] = $model;
                 }
             }
         }
 
+        // remove $me from $models so that we send them as relations.
         array_shift($models);
         // run the query and create the records.
         $result = $query->createWith($me->toArray(), $models);
         // take the parent model that was created out of the results array based on
         // this model's label.
         $created = reset($result[$label]);
-
         // fire 'saved' and 'created' events on parent model.
         $created->finishSave($options);
         $created->fireModelEvent('created', false);
@@ -596,9 +607,13 @@ abstract class Model extends IlluminateModel
             // otherwise we create a collection of the loaded models.
             $related = new Collection($result[$method]);
             // fire model events 'created' and 'saved' on related models.
-            $related->each(function ($model) use ($options) {
+            $related->each(function ($model) use ($options, $existingModelsKeys) {
                 $model->finishSave($options);
-                $model->fireModelEvent('created', false);
+                // var_dump(get_class($model), 'saved');
+
+                if(!in_array($model->getKey(), $existingModelsKeys)) {
+                    $model->fireModelEvent('created', false);
+                }
             });
 
             // when the relation is 'One' instead of 'Many' we will only return the retrieved instance

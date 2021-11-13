@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany as IlluminateHasOneOrMany;
 use Illuminate\Support\Str;
 use Vinelab\NeoEloquent\Eloquent\Builder;
+use Vinelab\NeoEloquent\Eloquent\Edges\Edge;
 use Vinelab\NeoEloquent\Eloquent\Edges\Finder;
 use Vinelab\NeoEloquent\Eloquent\Edges\Relation;
 use Vinelab\NeoEloquent\Eloquent\Model;
@@ -96,9 +97,15 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
      */
     protected function getKeys(array $models, $key = null)
     {
-        return array_unique(array_values(array_map(function ($value) use ($key) {
+        return array_unique(array_values(array_map(function ($value) use ($key, $models) {
             if (is_array($value)) {
-                $value = reset($value);
+                // $models is a collection of associative arrays with the keys being a model and its relation,
+                // our job is to know which one to use since if we use the first element
+                // it might not be what we need, in some cases it's the lat element.
+                // To do that we're going to reversely detect the correct identifier (key)
+                // to use and it's sufficient to detect it from one of the records.
+                $identifier = $this->determineValueIdentifier(reset($models));
+                $value = $value[$identifier];
             }
 
             return $key ? $value->getAttribute($key) : $value->getKey();
@@ -125,7 +132,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
      */
     public function edge(Model $model = null)
     {
-        return $this->finder->first($this->parent, $model, $this->type);
+        return $this->finder->first($this->parent, $model, $this->type, $this->edgeDirection);
     }
 
     /**
@@ -135,7 +142,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
      */
     public function edges()
     {
-        return $this->finder->get($this->parent, $this->related, $this->type);
+        return $this->finder->get($this->parent, $this->related, $this->type, $this->edgeDirection);
     }
 
     /**
@@ -165,7 +172,8 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
                     // with the first key being the model we need, and the other being
                     // the related model so we'll just take the first model out of the array.
                     if (is_array($model)) {
-                        $model = reset($model);
+                        $identifier = $this->determineValueIdentifier($model);
+                        $model = $model[$identifier];
                     }
 
                     return $model->getKey() == $result[$parent]->getKey();
@@ -179,11 +187,17 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
                 // with the first key being the model we need, and the other being
                 // the related model so we'll just take the first model out of the array.
                 if (is_array($model)) {
-                    $model = reset($model);
+                    $identifier = $this->determineValueIdentifier($model);
+                    $model = $model[$identifier];
                 }
 
                 if ($type == 'many') {
-                    $collection = $model->getRelation($relation);
+                    $collection = $this->related->newCollection();
+
+                    if ($model->relationLoaded($relation)) {
+                        $collection = $model->getRelation($relation);
+                    }
+
                     $collection->push($match[$relation]);
                     $model->setRelation($relation, $collection);
                 } else {
@@ -355,7 +369,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
             // There must be at least a record found as for the records that do not match
             // they will be ignored and forever forgotten, poor thing.
             if (count($models) < 1) {
-                throw new ModelNotFoundException();
+                throw (new ModelNotFoundException())->setModel(get_class($this->related));
             }
             $models = $models->all();
         }
@@ -385,22 +399,27 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
             $id = [$id];
         }
 
+        /*
+         * @todo enhance this by creating a WHERE IN query
+         */
         // Prepare for a batch operation to take place so that we don't
         // overwhelm the database with many delete hits.
-        $this->finder->prepareBatch();
-
+        $results = [];
         foreach ($id as $model) {
             $edge = $this->edge($model);
-            $edge->delete();
+            $results[] = $edge->delete();
         }
-
-        $results = $this->finder->commitBatch();
 
         if ($touch) {
             $this->touchIfTouching();
         }
 
-        return $results;
+        return !in_array(false, $results);
+    }
+
+    public function delete($shouldKeepEndNode = false)
+    {
+        return $this->finder->delete($shouldKeepEndNode);
     }
 
     /**
@@ -420,6 +439,8 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
         // get them as collection
         if ($ids instanceof Collection) {
             $ids = $ids->modelKeys();
+        } elseif (!is_array($ids)) {
+            $ids = [$ids];
         }
 
         // First we need to attach the relationships that do not exist
@@ -430,9 +451,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
         // Let's fetch the existing edges first.
         $edges = $this->edges();
         // Collect the current related models IDs out of related models.
-        $current = array_map(function (Relation $edge) {
-            return $edge->getRelated()->getKey();
-        }, $edges->toArray());
+        $current = array_map(function (Edge $edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
 
         $records = $this->formatSyncList($ids);
 
@@ -488,6 +507,23 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
         return $changes;
     }
 
+
+    /**
+     * Perform an update on all the related models.
+     *
+     * @param array $attributes
+     *
+     * @return int
+     */
+    public function update(array $attributes)
+    {
+        if ($this->related->usesTimestamps()) {
+            $attributes[$this->relatedUpdatedAt()] = $this->related->freshTimestampString();
+        }
+
+        return $this->query->update($attributes);
+    }
+
     /**
      * Update an edge's properties.
      *
@@ -498,7 +534,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
      */
     public function updateEdge($id, array $properties)
     {
-        $edge = $this->finder->first($this->parent, $this->related->findOrFail($id), $this->type);
+        $edge = $this->finder->first($this->parent, $this->related->findOrFail($id), $this->type, $this->edgeDirection);
         $edge->fill($properties);
 
         return $edge->save();
@@ -717,5 +753,26 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
     public function getEdgeDirection()
     {
         return $this->edgeDirection;
+    }
+
+    /**
+     * When matching eager loaded data, we need to determine
+     * which identifier should be used to set the related models to.
+     * This is done by iterating the given models and checking for
+     * the matching class between the result and this relation's
+     * parent model. When there's a match, the identifier at which
+     * the match occurred is returned.
+     *
+     * @param  array  $models
+     *
+     * @return string
+     */
+    protected function determineValueIdentifier(array $models)
+    {
+        foreach ($models as $resultIdentifier => $model) {
+            if (get_class($this->parent) === get_class($model)) {
+                return $resultIdentifier;
+            }
+        }
     }
 }

@@ -64,7 +64,7 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
      *
      * @param \Illuminate\Database\Eloquent\Model $model
      *
-     * @return \Vinelab\NeoEloquent\Eloquent\Edges\Relation
+     * @return \Vinelab\NeoEloquent\Eloquent\Edges\Edge
      */
     public function associate($model, $attributes = [])
     {
@@ -102,7 +102,11 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
          * it is a relationship with an edge incoming towards the $parent model and we call it
          * an "Edge" relationship.
          */
-        return $this->getEdge($model, $attributes);
+        $relation = $this->getEdge($model, $attributes);
+
+        $relation->save();
+
+        return $relation;
     }
 
     /**
@@ -186,7 +190,8 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
                     // with the first key being the model we need, and the other being
                     // the related model so we'll just take the first model out of the array.
                     if (is_array($model)) {
-                        $model = reset($model);
+                        $identifier = $this->determineValueIdentifier($model);
+                        $model = $model[$identifier];
                     }
 
                     return $model->getKey() == $result[$parent]->getKey();
@@ -200,7 +205,8 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
                 // with the first key being the model we need, and the other being
                 // the related model so we'll just take the first model out of the array.
                 if (is_array($model)) {
-                    $model = reset($model);
+                    $identifier = $this->determineValueIdentifier($model);
+                    $model = $model[$identifier];
                 }
 
                 $model->setRelation($relation, $match[$relation]);
@@ -212,7 +218,7 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
 
     public function getRelationName()
     {
-        return $this->relation;
+        return $this->relationName;
     }
 
     public function getRelationType()
@@ -258,5 +264,26 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
     public function getParentLocalKeyValue()
     {
         return $this->parent->{$this->ownerKey};
+    }
+
+    /**
+     * When matching eager loaded data, we need to determine
+     * which identifier should be used to set the related models to.
+     * This is done by iterating the given models and checking for
+     * the matching class between the result and this relation's
+     * parent model. When there's a match, the identifier at which
+     * the match occurred is returned.
+     *
+     * @param  array  $models
+     *
+     * @return string
+     */
+    protected function determineValueIdentifier(array $models)
+    {
+        foreach ($models as $resultIdentifier => $model) {
+            if (get_class($this->parent) === get_class($model)) {
+                return $resultIdentifier;
+            }
+        }
     }
 }

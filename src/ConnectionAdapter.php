@@ -336,7 +336,7 @@ class ConnectionAdapter extends BaseConnection implements ConnectionInterface
 	 * @param  \Illuminate\Database\QueryException
 	 * @return bool
 	 */
-	protected function causedByLostConnection(Exception $e)
+	protected function causedByLostConnection(\Throwable $e)
 	{
         return $this->neoeloquent->causedByLostConnection(new QueryException($e));
 	}

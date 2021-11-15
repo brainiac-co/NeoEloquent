@@ -108,7 +108,7 @@ class ConnectionAdapter extends BaseConnection implements ConnectionInterface
 	 * @param  array   $bindings
 	 * @return mixed
 	 */
-	public function selectOne($query, $bindings = array())
+    public function selectOne($query, $bindings = [], $useReadPdo = true)
 	{
         return $this->neoeloquent->selectOne($query, $bindings);
 	}

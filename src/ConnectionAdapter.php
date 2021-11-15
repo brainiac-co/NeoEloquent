@@ -258,7 +258,7 @@ class ConnectionAdapter extends BaseConnection implements ConnectionInterface
 	 *
 	 * @return void
 	 */
-	public function rollBack()
+	public function rollBack($toLevel = null)
 	{
 		$this->neoeloquent->rollBack();
 	}

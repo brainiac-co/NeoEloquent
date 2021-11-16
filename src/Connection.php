@@ -21,6 +21,7 @@ use Throwable;
 use Vinelab\NeoEloquent\Exceptions\InvalidCypherException;
 use Vinelab\NeoEloquent\Exceptions\QueryException;
 use Vinelab\NeoEloquent\Query\Grammars\CypherGrammar;
+use Vinelab\NeoEloquent\Query\Processors\Processor;
 use Vinelab\NeoEloquent\Schema\Builder;
 
 class Connection extends IlluminateConnection
@@ -135,6 +136,16 @@ class Connection extends IlluminateConnection
         }
 
         return $this->neo;
+    }
+
+    /**
+     * Get the default post processor instance.
+     *
+     * @return \Illuminate\Database\Query\Processors\Processor
+     */
+    protected function getDefaultPostProcessor()
+    {
+        return new Processor();
     }
 
     /**

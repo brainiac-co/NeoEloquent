@@ -16,7 +16,6 @@ use Vinelab\NeoEloquent\Eloquent\Relations\MorphMany;
 use Vinelab\NeoEloquent\Eloquent\Relations\MorphTo;
 use Vinelab\NeoEloquent\Eloquent\Relations\OneRelation;
 use Vinelab\NeoEloquent\Helpers;
-use Vinelab\NeoEloquent\Query\Builder as QueryBuilder;
 
 abstract class Model extends IlluminateModel
 {
@@ -77,7 +76,7 @@ abstract class Model extends IlluminateModel
 
         $processor = $conn->getPostProcessor();
 
-        return new QueryBuilder($conn, $grammar, $processor);
+        return new \Vinelab\NeoEloquent\Query\Builder($conn, $grammar, $processor);
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Vinelab\NeoEloquent\Connection as NeoEloquentConnection;
 use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Eloquent\NeoEloquentFactory;
+use Vinelab\NeoEloquent\Query\Processors\Processor;
 use Vinelab\NeoEloquent\Schema\Grammars\CypherGrammar;
 
 class NeoEloquentServiceProvider extends ServiceProvider
@@ -47,6 +48,7 @@ class NeoEloquentServiceProvider extends ServiceProvider
             $this->config = $config;
             $conn = new ConnectionAdapter($config);
             $conn->setSchemaGrammar(new CypherGrammar());
+            $conn->setPostProcessor(new Processor());
 
             return $conn;
         });

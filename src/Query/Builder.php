@@ -8,6 +8,7 @@ use Closure;
 use DateTime;
 use GraphAware\Common\Result\AbstractRecordCursor as Result;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder as IlluminateQueryBuilder;
 use Illuminate\Database\Query\Processors\Processor as IlluminateProcessor;
@@ -194,13 +195,13 @@ class Builder extends IlluminateQueryBuilder
     /**
      * Create a new query builder instance.
      *
-     * @param Vinelab\NeoEloquent\Connection                  $connection
+     * @param ConnectionInterface                  $connection
      * @param \Illuminate\Database\Query\Grammars\Grammar     $grammar
      * @param \Illuminate\Database\Query\Processors\Processor $processor
      *
      * @return void
      */
-    public function __construct(Connection $connection, Grammar $grammar, IlluminateProcessor $processor)
+    public function __construct(ConnectionInterface $connection, Grammar $grammar, IlluminateProcessor $processor)
     {
         $this->grammar = $grammar;
         $this->grammar->setQuery($this);

@@ -20,6 +20,8 @@ class QueryingRelationsTest extends TestCase
 
     public function testQueryingHasCount()
     {
+        // todo: $postWithTenComments seems to get duplicates, at least when running full suite
+
         $postNoComment = Post::create(['title' => 'I have no comments =(', 'body' => 'None!']);
         $postWithComment = Post::create(['title' => 'Nananana', 'body' => 'Commentmaaan']);
         $postWithTwoComments = Post::create(['title' => 'I got two']);
@@ -119,7 +121,7 @@ class QueryingRelationsTest extends TestCase
         $admins = User::whereHas('roles', function ($q) {
             $q->where('alias', 'admin');
         })->get();
-        $this->assertEquals(2, count($admins));
+        $this->assertEquals(2, $admins->count());
         $expectedAdmins = [$mrAdmin, $anotherAdmin];
         $expectedAdmins = array_map(function ($admin) {
             return $admin->toArray();

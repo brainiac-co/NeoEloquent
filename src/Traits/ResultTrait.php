@@ -2,6 +2,7 @@
 
 namespace Vinelab\NeoEloquent\Traits;
 
+use Illuminate\Support\Collection;
 use Laudis\Neo4j\Types\CypherList;
 use Laudis\Neo4j\Types\CypherMap;
 use Laudis\Neo4j\Types\Node;
@@ -10,7 +11,7 @@ use RuntimeException;
 
 trait ResultTrait
 {
-    public function getRecordsByPlaceholders(CypherList $result): array
+    public function getRecordsByPlaceholders(Collection $result): array
     {
         $recordsByKeys = [];
         /**
@@ -26,7 +27,7 @@ trait ResultTrait
         return $recordsByKeys;
     }
 
-    public function getRelationshipRecords(CypherList $results): array
+    public function getRelationshipRecords(Collection $results): array
     {
         $relationships = [];
 
@@ -37,7 +38,7 @@ trait ResultTrait
         return $relationships;
     }
 
-    public function getNodeRecords(CypherList $result): array
+    public function getNodeRecords(Collection $result): array
     {
         $nodes = [];
 
@@ -52,7 +53,7 @@ trait ResultTrait
      * @param CypherList $result
      * @return mixed
      */
-    public function getSingleItem(CypherList $result)
+    public function getSingleItem(Collection $result)
     {
         /** @var CypherMap $map */
         $map = $result->first();

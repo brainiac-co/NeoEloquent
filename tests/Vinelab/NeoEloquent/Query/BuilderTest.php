@@ -13,6 +13,7 @@ use Laudis\Neo4j\Databags\SummaryCounters;
 use Laudis\Neo4j\Enum\ConnectionProtocol;
 use Laudis\Neo4j\Enum\QueryTypeEnum;
 use Laudis\Neo4j\Types\CypherList;
+use Illuminate\Database\Query\Processors\Processor;
 use Laudis\Neo4j\Types\CypherMap;
 use Mockery as M;
 use Laudis\Neo4j\Types\Node;
@@ -29,11 +30,12 @@ class BuilderTest extends TestCase
 
         $this->grammar = M::mock('Vinelab\NeoEloquent\Query\Grammars\CypherGrammar')->makePartial();
         $this->connection = M::mock('Vinelab\NeoEloquent\Connection')->makePartial();
+        $this->processor = new Processor();
 
         $this->neoClient = M::mock(ClientInterface::class);
         $this->connection->shouldReceive('getClient')->andReturn($this->neoClient);
 
-        $this->builder = new Builder($this->connection, $this->grammar);
+        $this->builder = new Builder($this->connection, $this->grammar, $this->processor);
     }
 
     public function tearDown(): void
@@ -340,6 +342,6 @@ class BuilderTest extends TestCase
         $connection->shouldReceive('getClient')->once()->andReturn($client);
         $grammar = new CypherGrammar();
 
-        return new Builder($connection, $grammar);
+        return new Builder($connection, $grammar, $this->processor);
     }
 }

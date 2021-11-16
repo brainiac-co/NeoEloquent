@@ -27,93 +27,18 @@ use Vinelab\NeoEloquent\Schema\Builder;
 use Vinelab\NeoEloquent\Schema\Grammars\CypherGrammar as SchemaGrammar;
 use Vinelab\NeoEloquent\Query\Grammars\Grammar;
 use Vinelab\NeoEloquent\Query\Processors\Processor;
+use Illuminate\Database\Connection as IlluminateConnection;
+use Illuminate\Database\Schema\Grammars\Grammar as IlluminateSchemaGrammar;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
 use function sprintf;
 
-class Connection implements ConnectionInterface
+class Connection extends IlluminateConnection
 {
-    const TYPE_HA = 'ha';
-    const TYPE_MULTI = 'multi';
-    const TYPE_SINGLE = 'single';
-
-    /**
-     * The reconnector instance for the connection.
-     *
-     * @var callable
-     */
-    protected $reconnector;
-
-    /**
-     * The query grammar implementation.
-     *
-     * @var \Illuminate\Database\Query\Grammars\Grammar
-     */
-    protected $queryGrammar;
-
-    /**
-     * The schema grammar implementation.
-     *
-     * @var \Illuminate\Database\Schema\Grammars\Grammar
-     */
-    protected $schemaGrammar;
-
-    /**
-     * The query post processor implementation.
-     *
-     * @var \Illuminate\Database\Query\Processors\Processor
-     */
-    protected $postProcessor;
-
-    /**
-     * The event dispatcher instance.
-     *
-     * @var Dispatcher
-     */
-    protected $events;
-
-    /**
-     * The number of active transactions.
-     *
-     * @var int
-     */
-    protected $transactions = 0;
-
-    /**
-     * All of the queries run against the connection.
-     *
-     * @var array
-     */
-    protected $queryLog = [];
-
-    /**
-     * Indicates whether queries are being logged.
-     *
-     * @var bool
-     */
-    protected $loggingQueries = false;
-
-    /**
-     * Indicates if the connection is in a "dry run".
-     *
-     * @var bool
-     */
-    protected $pretending = false;
-
-    /**
-     * The name of the connected database.
-     *
-     * @var string
-     */
-    protected $database;
-
-    /**
-     * The database connection configuration options.
-     *
-     * @var array
-     */
-    protected $config = [];
+    public const TYPE_HA = 'ha';
+    public const TYPE_MULTI = 'multi';
+    public const TYPE_SINGLE = 'single';
 
     /**
      * The Neo4j active client connection.
@@ -157,207 +82,17 @@ class Connection implements ConnectionInterface
     public function __construct(array $config = [])
     {
         $this->config = $config;
+        // activate and set the database client connection
+        $this->neo = $this->createConnection();
+
+        // We need to initialize a query grammar and the query post processors
+        // which are both very important parts of the database abstractions
+        // so we initialize these to their default values while starting.
+        $this->useDefaultQueryGrammar();
+
+        $this->useDefaultPostProcessor();
     }
 
-    /**
-     * Set the query grammar used by the connection.
-     *
-     * @param \Illuminate\Database\Query\Grammars\Grammar $grammar
-     */
-    public function setQueryGrammar(Grammar $grammar)
-    {
-        $this->queryGrammar = $grammar;
-    }
-
-    /**
-     * Set the query grammar to the default implementation.
-     */
-    public function useDefaultQueryGrammar()
-    {
-        $this->queryGrammar = $this->getDefaultQueryGrammar();
-    }
-
-    /**
-     * Set the schema grammar to the default implementation.
-     */
-    public function useDefaultSchemaGrammar()
-    {
-        $this->schemaGrammar = $this->getDefaultSchemaGrammar();
-    }
-
-    /**
-     * Set the query post processor to the default implementation.
-     */
-    public function useDefaultPostProcessor()
-    {
-        $this->postProcessor = $this->getDefaultPostProcessor();
-    }
-
-    /**
-     * Get the query post processor used by the connection.
-     *
-     * @return \Illuminate\Database\Query\Processors\Processor
-     */
-    public function getPostProcessor()
-    {
-        return $this->postProcessor;
-    }
-
-    /**
-     * Set the query post processor used by the connection.
-     *
-     * @param \Illuminate\Database\Query\Processors\Processor $processor
-     */
-    public function setPostProcessor(Processor $processor)
-    {
-        $this->postProcessor = $processor;
-    }
-
-    /**
-     * Get the event dispatcher used by the connection.
-     *
-     * @return Dispatcher
-     */
-    public function getEventDispatcher()
-    {
-        return $this->events;
-    }
-
-    /**
-     * Get the default post processor instance.
-     *
-     * @return \Illuminate\Database\Query\Processors\Processor
-     */
-    protected function getDefaultPostProcessor()
-    {
-        return new Processor();
-    }
-
-    /**
-     * Determine if the connection in a "dry run".
-     *
-     * @return bool
-     */
-    public function pretending()
-    {
-        return $this->pretending === true;
-    }
-
-    // *
-    //  * Get the default fetch mode for the connection.
-    //  *
-    //  * @return int
-
-    // public function getFetchMode()
-    // {
-    //     return $this->fetchMode;
-    // }
-
-    /**
-     * Clear the query log.
-     */
-    public function flushQueryLog()
-    {
-        $this->queryLog = [];
-    }
-
-    /**
-     * Enable the query log on the connection.
-     */
-    public function enableQueryLog()
-    {
-        $this->loggingQueries = true;
-    }
-
-    /**
-     * Disable the query log on the connection.
-     */
-    public function disableQueryLog()
-    {
-        $this->loggingQueries = false;
-    }
-
-    /**
-     * Get the connection query log.
-     *
-     * @return array
-     */
-    public function getQueryLog()
-    {
-        return $this->queryLog;
-    }
-
-    /**
-     * Determine whether we're logging queries.
-     *
-     * @return bool
-     */
-    public function logging()
-    {
-        return $this->loggingQueries;
-    }
-
-    /**
-     * Set the default fetch mode for the connection.
-     *
-     * @param int $fetchMode
-     *
-     * @return int
-     */
-    public function setFetchMode($fetchMode)
-    {
-        $this->fetchMode = $fetchMode;
-    }
-
-    /**
-     * Set the event dispatcher instance on the connection.
-     *
-     * @param Dispatcher $events
-     */
-    public function setEventDispatcher(Dispatcher $events)
-    {
-        $this->events = $events;
-    }
-
-    /**
-     * Get a new raw query expression.
-     *
-     * @param mixed $value
-     *
-     * @return \Illuminate\Database\Query\Expression
-     */
-    public function raw($value)
-    {
-        return new Expression($value);
-    }
-
-    /**
-     * Run a select statement and return a single result.
-     *
-     * @param string $query
-     * @param array  $bindings
-     *
-     * @return mixed
-     */
-    public function selectOne($query, $bindings = [])
-    {
-        $records = $this->select($query, $bindings);
-
-        return count($records) > 0 ? reset($records) : null;
-    }
-
-    /**
-     * Run a select statement against the database.
-     *
-     * @param string $query
-     * @param array  $bindings
-     *
-     * @return array
-     */
-    public function selectFromWriteConnection($query, $bindings = [])
-    {
-        return $this->select($query, $bindings, false);
-    }
 
     public function createConnection()
     {
@@ -425,9 +160,9 @@ class Connection implements ConnectionInterface
         $this->neo = $client;
     }
 
-    public function getScheme(array $config)
+    public function getScheme()
     {
-        return Arr::get($config, 'scheme', $this->defaults['scheme']);
+        return $this->getConfig('scheme');
     }
 
     /**
@@ -435,9 +170,9 @@ class Connection implements ConnectionInterface
      *
      * @return string
      */
-    public function getHost(array $config)
+    public function getHost()
     {
-        return Arr::get($config, 'host', $this->defaults['host']);
+        return $this->getConfig('host');
     }
 
     /**
@@ -445,9 +180,9 @@ class Connection implements ConnectionInterface
      *
      * @return int|string
      */
-    public function getPort(array $config)
+    public function getPort()
     {
-        return Arr::get($config, 'port', $this->defaults['port']);
+        return $this->getConfig('port');
     }
 
     /**
@@ -455,9 +190,19 @@ class Connection implements ConnectionInterface
      *
      * @return int|string
      */
-    public function getUsername(array $config)
+    public function getUsername()
     {
-        return Arr::get($config, 'username', $this->defaults['username']);
+        return $this->getConfig('username');
+    }
+
+    /**
+     * Get the connection password.
+     *
+     * @return int|string
+     */
+    public function getPassword()
+    {
+        return $this->getConfig('password');
     }
 
     /**
@@ -467,22 +212,19 @@ class Connection implements ConnectionInterface
      */
     public function isSecured(array $config)
     {
-        return Arr::get($config, 'username') !== null && Arr::get($config, 'password') !== null;
+        return $this->getUsername() !== null && $this->getPassword() !== null;
     }
 
     /**
-     * Get the connection password.
+     * Get an option from the configuration options.
      *
-     * @return int|strings
+     * @param string|null $option
+     *
+     * @return mixed
      */
-    public function getPassword(array $config)
+    public function getConfig($option = null)
     {
-        return Arr::get($config, 'password', $this->defaults['password']);
-    }
-
-    public function getConfig()
-    {
-        return $this->config;
+        return Arr::get($this->config, $option);
     }
 
     /**
@@ -526,7 +268,7 @@ class Connection implements ConnectionInterface
      *
      * @return CypherList
      */
-    public function select($query, $bindings = array())
+    public function select($query, $bindings = array(), $useReadPdo = false)
     {
         return $this->run($query, $bindings, function (self $me, $query, array $bindings) {
             if ($me->pretending()) {
@@ -558,32 +300,6 @@ class Connection implements ConnectionInterface
     public function insert($query, $bindings = array())
     {
         return $this->statement($query, $bindings, true);
-    }
-
-    /**
-     * Run an update statement against the database.
-     *
-     * @param string $query
-     * @param array  $bindings
-     *
-     * @return SummarizedResult
-     */
-    public function update($query, $bindings = [])
-    {
-        return $this->affectingStatement($query, $bindings);
-    }
-
-    /**
-     * Run a delete statement against the database.
-     *
-     * @param string $query
-     * @param array  $bindings
-     *
-     * @return int
-     */
-    public function delete($query, $bindings = [])
-    {
-        return $this->affectingStatement($query, $bindings);
     }
 
     /**
@@ -634,7 +350,7 @@ class Connection implements ConnectionInterface
             $run = $this->getClient()->run($query['statement'], $query['parameters']);
             $results = $run->getResult();
 
-            return ($rawResults === true) ? $results : true;
+            return ($rawResults === true) ? collect($results) : true;
         });
     }
 
@@ -808,9 +524,9 @@ class Connection implements ConnectionInterface
             $this->commit();
         }
 
-            // If we catch an exception, we will roll back so nothing gets messed
-            // up in the database. Then we'll re-throw the exception so it can
-            // be handled how the developer sees fit for their applications.
+        // If we catch an exception, we will roll back so nothing gets messed
+        // up in the database. Then we'll re-throw the exception so it can
+        // be handled how the developer sees fit for their applications.
         catch (Exception $e) {
             $this->rollBack();
 
@@ -829,11 +545,10 @@ class Connection implements ConnectionInterface
      */
     public function beginTransaction()
     {
-        ++$this->transactions;
+        $this->transactions++;
 
         if ($this->transactions == 1) {
-            $client = $this->getClient();
-            $this->transaction = $client->beginTransaction();
+            $this->transaction = $this->neo->beginTransaction();
         }
 
         $this->fireConnectionEvent('beganTransaction');
@@ -848,90 +563,38 @@ class Connection implements ConnectionInterface
             $this->transaction->commit();
         }
 
-        --$this->transactions;
+        $this->transactions--;
 
         $this->fireConnectionEvent('committed');
     }
 
-    /**
-     * Get the number of active transactions.
-     *
-     * @return int
-     */
-    public function transactionLevel()
-    {
-        return $this->transactions;
-    }
-
-    /**
-     * Rollback the active database transaction.
-     */
-    public function rollBack()
+    public function rollBack($toLevel = null)
     {
         if ($this->transactions == 1) {
             $this->transactions = 0;
 
-            $this->transaction->rollback();
+            $this->transaction->rollBack();
         } else {
-            --$this->transactions;
+            $this->transactions--;
         }
 
         $this->fireConnectionEvent('rollingBack');
     }
 
     /**
-     * Execute the given callback in "dry run" mode.
+     * Begin a fluent query against a database table.
+     * In neo4j's terminologies this is a node.
      *
-     * @param Closure $callback
+     * @param string      $table
+     * @param string|null $as
      *
-     * @return array
+     * @return \Vinelab\NeoEloquent\Query\Builder
      */
-    public function pretend(Closure $callback)
+    public function table($table, $as = null)
     {
-        $loggingQueries = $this->loggingQueries;
+        $query = new \Vinelab\NeoEloquent\Query\Builder($this, $this->getQueryGrammar(), $this->getPostProcessor());
 
-        $this->enableQueryLog();
-
-        $this->pretending = true;
-
-        $this->queryLog = [];
-
-        // Basically to make the database connection "pretend", we will just return
-        // the default values for all the query methods, then we will return an
-        // array of queries that were "executed" within the Closure callback.
-        $callback($this);
-
-        $this->pretending = false;
-
-        $this->loggingQueries = $loggingQueries;
-
-        return $this->queryLog;
-    }
-
-    /**
-     * Begin a fluent query against a node.
-     *
-     * @param string $label
-     *
-     * @return QueryBuilder
-     */
-    public function node($label)
-    {
-        $query = new QueryBuilder($this, $this->getQueryGrammar());
-
-        return $query->from($label);
-    }
-
-    /**
-     * Get a new query builder instance.
-     *
-     * @return \Illuminate\Database\Query\Builder
-     */
-    public function query()
-    {
-        return new QueryBuilder(
-            $this, $this->getQueryGrammar(), $this->getPostProcessor()
-        );
+        return $query->from($table, $as);
     }
 
     /**
@@ -956,9 +619,9 @@ class Connection implements ConnectionInterface
             $result = $callback($this, $query, $bindings);
         }
 
-            // If an exception occurs when attempting to run a query, we'll format the error
-            // message to include the bindings with Cypher, which will make this exception a
-            // lot more helpful to the developer instead of just the database's errors.
+        // If an exception occurs when attempting to run a query, we'll format the error
+        // message to include the bindings with Cypher, which will make this exception a
+        // lot more helpful to the developer instead of just the database's errors.
         catch (Exception $e) {
             $this->handleExceptions($query, $bindings, $e);
         }
@@ -993,52 +656,19 @@ class Connection implements ConnectionInterface
             $result = $callback($this, $query, $bindings);
         }
 
-            // If an exception occurs when attempting to run a query, we'll format the error
-            // message to include the bindings with SQL, which will make this exception a
-            // lot more helpful to the developer instead of just the database's errors.
+        // If an exception occurs when attempting to run a query, we'll format the error
+        // message to include the bindings with SQL, which will make this exception a
+        // lot more helpful to the developer instead of just the database's errors.
         catch (Exception $e) {
             throw new QueryException(
-                $query, $this->prepareBindings($bindings), $e
+                $query,
+                $this->prepareBindings($bindings),
+                $e
             );
         }
 
         return $result;
     }
-
-    /**
-     * Handle a query exception that occurred during query execution.
-     *
-     * @param Exceptions\Exception $e
-     * @param string                                    $query
-     * @param array                                     $bindings
-     * @param Closure $callback
-     *
-     * @return mixed
-     *
-     * @throws Exceptions\Exception
-     */
-    protected function tryAgainIfCausedByLostConnection(QueryException $e, $query, $bindings, Closure $callback)
-    {
-        if ($this->causedByLostConnection($e->getPrevious())) {
-            $this->reconnect();
-
-            return $this->runQueryCallback($query, $bindings, $callback);
-        }
-
-        throw $e;
-    }
-
-    /**
-     * Determine if the given exception was caused by a lost connection.
-     *
-     * @param  \Illuminate\Database\QueryException
-     * @return bool
-     */
-    protected function causedByLostConnection(QueryException $e)
-    {
-        return str_contains($e->getPrevious()->getMessage(), 'server has gone away');
-    }
-
 
     /**
      * Disconnect from the underlying PDO connection.
@@ -1074,60 +704,6 @@ class Connection implements ConnectionInterface
     }
 
     /**
-     * Log a query in the connection's query log.
-     *
-     * @param string     $query
-     * @param array      $bindings
-     * @param float|null $time
-     */
-    public function logQuery($query, $bindings, $time = null)
-    {
-        if (isset($this->events)) {
-            $this->events->fire('illuminate.query', [$query, $bindings, $time, $this->getName()]);
-        }
-
-        if ($this->loggingQueries) {
-            $this->queryLog[] = compact('query', 'bindings', 'time');
-        }
-    }
-
-    /**
-     * Register a database query listener with the connection.
-     *
-     * @param Closure $callback
-     */
-    public function listen(Closure $callback)
-    {
-        if (isset($this->events)) {
-            $this->events->listen(Events\QueryExecuted::class, $callback);
-        }
-    }
-
-    /**
-     * Fire an event for this connection.
-     *
-     * @param string $event
-     */
-    protected function fireConnectionEvent($event)
-    {
-        if (isset($this->events)) {
-            $this->events->fire('connection.'.$this->getName().'.'.$event, $this);
-        }
-    }
-
-    /**
-     * Get the elapsed time since a given starting point.
-     *
-     * @param int $start
-     *
-     * @return float
-     */
-    protected function getElapsedTime($start)
-    {
-        return round((microtime(true) - $start) * 1000, 2);
-    }
-
-    /**
      * Set the reconnect instance on the connection.
      *
      * @param callable $reconnector
@@ -1139,35 +715,6 @@ class Connection implements ConnectionInterface
         $this->reconnector = $reconnector;
 
         return $this;
-    }
-
-    /**
-     * Set the schema grammar used by the connection.
-     *
-     * @param  \Illuminate\Database\Schema\Grammars\Grammar
-     */
-    public function setSchemaGrammar(SchemaGrammar $grammar)
-    {
-        $this->schemaGrammar = $grammar;
-    }
-
-    /**
-     * Get the schema grammar used by the connection.
-     *
-     * @return \Illuminate\Database\Query\Grammars\Grammar
-     */
-    public function getSchemaGrammar()
-    {
-        return $this->schemaGrammar;
-    }
-
-    /**
-     * Get the default schema grammar instance.
-     *
-     * @return \Illuminate\Database\Schema\Grammars\Grammar
-     */
-    protected function getDefaultSchemaGrammar()
-    {
     }
 
     /**

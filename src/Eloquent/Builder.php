@@ -19,72 +19,6 @@ class Builder extends IlluminateBuilder
     use ResultTrait;
 
 
-
-    /**
-     * Nest where conditions by slicing them at the given where count.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  int  $originalWhereCount
-     * @return void
-     */
-    protected function addNewWheresWithinGroup($query, $originalWhereCount)
-    {
-        // Here, we totally remove all of the where clauses since we are going to
-        // rebuild them as nested queries by slicing the groups of wheres into
-        // their own sections. This is to prevent any confusing logic order.
-        $allWheres = $query->wheres;
-
-        $query->wheres = [];
-
-        $this->groupWhereSliceForScope(
-            $query, array_slice($allWheres, 0, $originalWhereCount)
-        );
-
-        $this->groupWhereSliceForScope(
-            $query, array_slice($allWheres, $originalWhereCount)
-        );
-    }
-
-    /**
-     * Slice where conditions at the given offset and add them to the query as a nested condition.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $whereSlice
-     * @return void
-     */
-    protected function groupWhereSliceForScope($query, $whereSlice)
-    {
-        $whereBooleans = collect($whereSlice)->pluck('boolean');
-
-        // Here we'll check if the given subset of where clauses contains any "or"
-        // booleans and in this case create a nested where expression. That way
-        // we don't add any unnecessary nesting thus keeping the query clean.
-        if ($whereBooleans->contains('or')) {
-            $query->wheres[] = $this->createNestedWhere(
-                $whereSlice, $whereBooleans->first()
-            );
-        } else {
-            $query->wheres = array_merge($query->wheres, $whereSlice);
-        }
-    }
-
-    /**
-     * Create a where array with nested where conditions.
-     *
-     * @param  array  $whereSlice
-     * @param  string  $boolean
-     * @return array
-     */
-    protected function createNestedWhere($whereSlice, $boolean = 'and')
-    {
-        $whereGroup = $this->getQuery()->forNestedWhere();
-
-        $whereGroup->wheres = $whereSlice;
-
-        return ['type' => 'Nested', 'query' => $whereGroup, 'boolean' => $boolean];
-    }
-
-
     /**
      * The loaded models that should be transformed back
      * to Models. Sometimes we might ask for more than
@@ -97,10 +31,6 @@ class Builder extends IlluminateBuilder
      */
     protected $mutations = [];
 
-    public function __construct(QueryBuilder $query)
-    {
-        $this->query = $query;
-    }
 
     /**
      * Find a model by its primary key.
@@ -157,7 +87,7 @@ class Builder extends IlluminateBuilder
         // First, we will simply get the raw results from the query builders which we
         // can use to populate an array with Eloquent models. We will pass columns
         // that should be selected as well, which are typically just everything.
-        $results = $this->query->get($properties);
+        $results = collect($this->query->get($properties));
 
         // Once we have the results, we can spin through them and instantiate a fresh
         // model instance for each records we retrieved from the database. We will
@@ -169,15 +99,15 @@ class Builder extends IlluminateBuilder
      * Turn Neo4j result set into the corresponding model.
      *
      * @param string $connection
-     * @param ?CypherList $results
+     * @param Collection $results
      *
      * @return array
      */
-    protected function resultsToModels($connection, ?CypherList $results = null)
+    protected function resultsToModels($connection, \Illuminate\Support\Collection $results = null)
     {
         $models = [];
 
-        $results = $results ?? new CypherList();
+        $results = $results ?? collect();
 
         if ($results) {
             $resultsByIdentifier = $this->getRecordsByPlaceholders($results);
@@ -286,11 +216,11 @@ class Builder extends IlluminateBuilder
      * Turn Neo4j result set into the corresponding model with its relations.
      *
      * @param string                                            $connection
-     * @param CypherList    $results
+     * @param \Illuminate\Support\Collection    $results
      *
      * @return array
      */
-    protected function resultsToModelsWithRelations($connection, CypherList $results)
+    protected function resultsToModelsWithRelations($connection, \Illuminate\Support\Collection $results)
     {
         $models = [];
 
@@ -1051,5 +981,72 @@ class Builder extends IlluminateBuilder
             $this->model->getUpdatedAtColumn(),
             $this->model->freshTimestampString()
         );
+    }
+
+
+
+
+    /**
+     * Nest where conditions by slicing them at the given where count.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  int  $originalWhereCount
+     * @return void
+     */
+    protected function addNewWheresWithinGroup($query, $originalWhereCount)
+    {
+        // Here, we totally remove all of the where clauses since we are going to
+        // rebuild them as nested queries by slicing the groups of wheres into
+        // their own sections. This is to prevent any confusing logic order.
+        $allWheres = $query->wheres;
+
+        $query->wheres = [];
+
+        $this->groupWhereSliceForScope(
+            $query, array_slice($allWheres, 0, $originalWhereCount)
+        );
+
+        $this->groupWhereSliceForScope(
+            $query, array_slice($allWheres, $originalWhereCount)
+        );
+    }
+
+    /**
+     * Slice where conditions at the given offset and add them to the query as a nested condition.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @param  array  $whereSlice
+     * @return void
+     */
+    protected function groupWhereSliceForScope($query, $whereSlice)
+    {
+        $whereBooleans = collect($whereSlice)->pluck('boolean');
+
+        // Here we'll check if the given subset of where clauses contains any "or"
+        // booleans and in this case create a nested where expression. That way
+        // we don't add any unnecessary nesting thus keeping the query clean.
+        if ($whereBooleans->contains('or')) {
+            $query->wheres[] = $this->createNestedWhere(
+                $whereSlice, $whereBooleans->first()
+            );
+        } else {
+            $query->wheres = array_merge($query->wheres, $whereSlice);
+        }
+    }
+
+    /**
+     * Create a where array with nested where conditions.
+     *
+     * @param  array  $whereSlice
+     * @param  string  $boolean
+     * @return array
+     */
+    protected function createNestedWhere($whereSlice, $boolean = 'and')
+    {
+        $whereGroup = $this->getQuery()->forNestedWhere();
+
+        $whereGroup->wheres = $whereSlice;
+
+        return ['type' => 'Nested', 'query' => $whereGroup, 'boolean' => $boolean];
     }
 }

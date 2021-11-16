@@ -116,7 +116,8 @@ class ConnectionTest extends TestCase
         $connection = $this->getMockConnection();
         $connection->logQuery('foo', array(), time());
         $connection->setEventDispatcher($events = M::mock('Illuminate\Contracts\Events\Dispatcher'));
-        $events->shouldReceive('fire')->once()->with('illuminate.query', array('foo', array(), null, null));
+        // $events->shouldReceive('dispatch')->once()->with('illuminate.query', array('foo', array(), null, null));
+        $events->shouldReceive('dispatch')->once()->with(M::type('Illuminate\Database\Events\QueryExecuted'));
         $connection->logQuery('foo', array(), null);
 
         self::assertTrue(true);
@@ -432,7 +433,7 @@ class ConnectionTest extends TestCase
         $connection = $this->getMockConnection(array('getName'));
         $connection->expects($this->once())->method('getName')->will($this->returnValue('name'));
         $connection->setEventDispatcher($events = M::mock('Illuminate\Contracts\Events\Dispatcher'));
-        $events->shouldReceive('fire')->once()->with('connection.name.beganTransaction', $connection);
+        $events->shouldReceive('dispatch')->once()->with(M::type('Illuminate\Database\Events\TransactionBeginning'));
         $connection->beginTransaction();
     }
 
@@ -441,7 +442,7 @@ class ConnectionTest extends TestCase
         $connection = $this->getMockConnection(array('getName'));
         $connection->expects($this->once())->method('getName')->will($this->returnValue('name'));
         $connection->setEventDispatcher($events = M::mock('Illuminate\Contracts\Events\Dispatcher'));
-        $events->shouldReceive('fire')->once()->with('connection.name.committed', $connection);
+        $events->shouldReceive('dispatch')->once()->with(M::type('Illuminate\Database\Events\TransactionCommitted'));
         $connection->commit();
     }
 
@@ -450,7 +451,7 @@ class ConnectionTest extends TestCase
         $connection = $this->getMockConnection(array('getName'));
         $connection->expects($this->once())->method('getName')->will($this->returnValue('name'));
         $connection->setEventDispatcher($events = M::mock('Illuminate\Contracts\Events\Dispatcher'));
-        $events->shouldReceive('fire')->once()->with('connection.name.rollingBack', $connection);
+        $events->shouldReceive('dispatch')->once()->with(M::type('Illuminate\Database\Events\TransactionRolledBack'));
         $connection->rollback();
     }
 
@@ -479,7 +480,8 @@ class ConnectionTest extends TestCase
     {
         $conn = $this->getMockConnection();
         $conn->setQueryGrammar(M::mock('Vinelab\NeoEloquent\Query\Grammars\CypherGrammar')->makePartial());
-        $builder = $conn->node('User');
+        $conn->setPostProcessor(M::mock('Illuminate\Database\Query\Processors\Processor')->makePartial());
+        $builder = $conn->table('User');
         $this->assertInstanceOf('Vinelab\NeoEloquent\Query\Builder', $builder);
         $this->assertEquals('User', $builder->from);
     }

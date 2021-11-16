@@ -96,7 +96,7 @@ class MorphMany extends BelongsToMany
      */
     public function getEdge(EloquentModel $model = null, $attributes = [])
     {
-        $model = (!is_null($model)) ? $model : $this->related;
+        $model = (null !== $model) ? $model : $this->related;
 
         return new EdgeOut($this->query, $this->parent, $model, $this->type, $attributes);
     }

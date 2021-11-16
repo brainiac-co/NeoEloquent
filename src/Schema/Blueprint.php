@@ -33,7 +33,7 @@ class Blueprint
     {
         $this->label = $label;
 
-        if (!is_null($callback)) {
+        if (null !== $callback) {
             $callback($this);
         }
     }
@@ -72,7 +72,7 @@ class Blueprint
             $method = 'compile'.ucfirst($command->name);
 
             if (method_exists($grammar, $method)) {
-                if (!is_null($cypher = $grammar->$method($this, $command, $connection))) {
+                if (null !== ($cypher = $grammar->$method($this, $command, $connection))) {
                     $statements = array_merge($statements, (array) $cypher);
                 }
             }

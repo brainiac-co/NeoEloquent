@@ -104,14 +104,14 @@ abstract class Model extends IlluminateModel
 
         // The label is accepted as an array for a convenience so we need to
         // convert it to a string separated by ':' following Neo4j's labels
-        if (is_array($label) && !empty($label)) {
+        if (is_array($label) && ! empty($label)) {
             return $label;
         }
 
         // since this is not an array, it is assumed to be a string
         // we check to see if it follows neo4j's labels naming (User:Fan)
         // and return an array exploded from the ':'
-        if (!empty($label)) {
+        if (! empty($label)) {
             $label = array_filter(explode(':', $label));
 
             // This trick re-indexes the array
@@ -162,7 +162,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -171,8 +171,8 @@ abstract class Model extends IlluminateModel
         // If no foreign key was supplied, we can use a backtrace to guess the proper
         // foreign key name by using the name of the calling class, which
         // will be uppercased and used as a relationship label
-        if (is_null($foreignKey)) {
-            $foreignKey = strtoupper($caller['class']);
+        if (null === $foreignKey) {
+            $foreignKey = mb_strtoupper($caller['class']);
         }
 
         $instance = new $related();
@@ -202,7 +202,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -211,8 +211,8 @@ abstract class Model extends IlluminateModel
         // If no foreign key was supplied, we can use a backtrace to guess the proper
         // foreign key name by using the name of the calling class, which
         // will be uppercased and used as a relationship label
-        if (is_null($foreignKey)) {
-            $foreignKey = strtoupper($caller['class']);
+        if (null === $foreignKey) {
+            $foreignKey = mb_strtoupper($caller['class']);
         }
 
         $instance = new $related();
@@ -242,7 +242,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -284,7 +284,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -296,7 +296,7 @@ abstract class Model extends IlluminateModel
         // If no relationship type was provided, we can use the previously traced back
         // $relation being the function name that called this method and using it in its
         // all uppercase form.
-        if (is_null($type)) {
+        if (null === $type) {
             $type = mb_strtoupper($relation);
         }
 
@@ -328,7 +328,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -340,7 +340,7 @@ abstract class Model extends IlluminateModel
         // If no relationship type was provided, we can use the previously traced back
         // $relation being the function name that called this method and using it in its
         // all uppercase form.
-        if (is_null($type)) {
+        if (null === $type) {
             $type = mb_strtoupper($relation);
         }
 
@@ -379,7 +379,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -391,7 +391,7 @@ abstract class Model extends IlluminateModel
         // If no relationship type was provided, we can use the previously traced back
         // $relation being the function name that called this method and using it in its
         // all uppercase form.
-        if (is_null($relationType)) {
+        if (null === $relationType) {
             $relationType = mb_strtoupper($relation);
         }
 
@@ -421,7 +421,7 @@ abstract class Model extends IlluminateModel
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
         // of the time this will be what we desire to use for the relationships.
-        if (is_null($relation)) {
+        if (null === $relation) {
             list(, $caller) = debug_backtrace(false);
 
             $relation = $caller['function'];
@@ -433,7 +433,7 @@ abstract class Model extends IlluminateModel
         // If no relationship type was provided, we can use the previously traced back
         // $relation being the function name that called this method and using it in its
         // all uppercase form.
-        if (is_null($type)) {
+        if (null === $type) {
             $type = mb_strtoupper($relation);
         }
 
@@ -475,7 +475,7 @@ abstract class Model extends IlluminateModel
         // If no name is provided, we will use the backtrace to get the function name
         // since that is most likely the name of the polymorphic interface. We can
         // use that to get both the class and foreign key that will be utilized.
-        if (is_null($name)) {
+        if (null === $name) {
             list(, $caller) = debug_backtrace(false);
 
             $name = Str::snake($caller['function']);
@@ -486,7 +486,7 @@ abstract class Model extends IlluminateModel
         // If the type value is null it is probably safe to assume we're eager loading
         // the relationship. When that is the case we will pass in a dummy query as
         // there are multiple types in the morph and we can't use single queries.
-        if (is_null($class = $this->$type)) {
+        if (null === ($class = $this->$type)) {
             return new MorphTo(
                 $this->newQuery(),
                 $this,
@@ -542,7 +542,7 @@ abstract class Model extends IlluminateModel
 
             // if the relation holds the attributes directly instead of an array
             // of attributes, we transform it into an array of attributes.
-            if ((!is_array($values) || Helpers::isAssocArray($values)) && !$values instanceof Collection) {
+            if ((! is_array($values) || Helpers::isAssocArray($values)) && ! $values instanceof Collection) {
                 $values = [$values];
             }
 
@@ -565,18 +565,18 @@ abstract class Model extends IlluminateModel
         $existingModelsKeys = [];
         // fire 'creating' and 'saving' events on all models.
         foreach ($models as $relation => $related) {
-            if (!is_array($related)) {
+            if (! is_array($related)) {
                 $related = [$related];
             }
 
             foreach ($related as $model) {
                 // we will fire model events on actual models, however attached models using IDs will not be considered.
-                if ($model instanceof Model) {
-                    if (!$model->exists && $model->fireModelEvent('creating') === false) {
+                if ($model instanceof self) {
+                    if (! $model->exists && $model->fireModelEvent('creating') === false) {
                         return false;
                     }
 
-                    if($model->exists) {
+                    if ($model->exists) {
                         $existingModelsKeys[] = $model->getKey();
                     }
 
@@ -611,7 +611,7 @@ abstract class Model extends IlluminateModel
                 $model->finishSave($options);
                 // var_dump(get_class($model), 'saved');
 
-                if(!in_array($model->getKey(), $existingModelsKeys)) {
+                if (! in_array($model->getKey(), $existingModelsKeys)) {
                     $model->fireModelEvent('created', false);
                 }
             });
@@ -723,12 +723,12 @@ abstract class Model extends IlluminateModel
             return false;
         }
 
-        if (!is_array($labels) || count($labels) == 0) {
+        if (! is_array($labels) || count($labels) == 0) {
             return false;
         }
 
         foreach ($labels as $label) {
-            if (!preg_match('/^[a-z]([a-z0-9]+)$/i', $label)) {
+            if (! preg_match('/^[a-z]([a-z0-9]+)$/i', $label)) {
                 return false;
             }
         }

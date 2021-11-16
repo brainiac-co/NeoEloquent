@@ -5,34 +5,23 @@ namespace Vinelab\NeoEloquent;
 use Closure;
 use DateTime;
 use Exception;
+use Illuminate\Database\Connection as IlluminateConnection;
+use Illuminate\Support\Arr;
 use Laudis\Neo4j\Authentication\Authenticate;
 use Laudis\Neo4j\ClientBuilder;
 use Laudis\Neo4j\Contracts\AuthenticateInterface;
 use Laudis\Neo4j\Contracts\ClientInterface;
 use Laudis\Neo4j\Contracts\TransactionInterface;
-use Laudis\Neo4j\Databags\ResultSummary;
 use Laudis\Neo4j\Databags\SummarizedResult;
 use Laudis\Neo4j\Formatter\OGMFormatter;
 use Laudis\Neo4j\Formatter\SummarizedResultFormatter;
 use Laudis\Neo4j\Types\CypherList;
 use LogicException;
-use Neoxygen\NeoClient\Client;
 use Throwable;
 use Vinelab\NeoEloquent\Exceptions\InvalidCypherException;
 use Vinelab\NeoEloquent\Exceptions\QueryException;
-use Vinelab\NeoEloquent\Query\Builder as QueryBuilder;
-use Vinelab\NeoEloquent\Query\Expression;
 use Vinelab\NeoEloquent\Query\Grammars\CypherGrammar;
 use Vinelab\NeoEloquent\Schema\Builder;
-use Vinelab\NeoEloquent\Schema\Grammars\CypherGrammar as SchemaGrammar;
-use Vinelab\NeoEloquent\Query\Grammars\Grammar;
-use Vinelab\NeoEloquent\Query\Processors\Processor;
-use Illuminate\Database\Connection as IlluminateConnection;
-use Illuminate\Database\Schema\Grammars\Grammar as IlluminateSchemaGrammar;
-
-use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Support\Arr;
-use function sprintf;
 
 class Connection extends IlluminateConnection
 {
@@ -59,13 +48,13 @@ class Connection extends IlluminateConnection
      *
      * @var array
      */
-    protected $defaults = array(
+    protected $defaults = [
         'scheme' => 'bolt',
         'host' => 'localhost',
         'port' => 7687,
         'username' => null,
         'password' => null,
-    );
+    ];
 
     /**
      * The neo4j driver name.
@@ -93,7 +82,6 @@ class Connection extends IlluminateConnection
         $this->useDefaultPostProcessor();
     }
 
-
     public function createConnection()
     {
         return $this->getClient();
@@ -114,9 +102,9 @@ class Connection extends IlluminateConnection
     private function initBuilder(): ClientBuilder
     {
         $formatter = new SummarizedResultFormatter(OGMFormatter::create());
+
         return ClientBuilder::create()->withFormatter($formatter);
     }
-
 
     public function createMultipleConnectionsClient()
     {
@@ -142,7 +130,7 @@ class Connection extends IlluminateConnection
      */
     public function getClient()
     {
-        if (!$this->neo) {
+        if (! $this->neo) {
             $this->setClient($this->createSingleConnectionClient());
         }
 
@@ -268,11 +256,11 @@ class Connection extends IlluminateConnection
      *
      * @return CypherList
      */
-    public function select($query, $bindings = array(), $useReadPdo = false)
+    public function select($query, $bindings = [], $useReadPdo = false)
     {
         return $this->run($query, $bindings, function (self $me, $query, array $bindings) {
             if ($me->pretending()) {
-                return array();
+                return [];
             }
 
             // For select statements, we'll simply execute the query and return an array
@@ -297,7 +285,7 @@ class Connection extends IlluminateConnection
      *
      * @return mixed
      */
-    public function insert($query, $bindings = array())
+    public function insert($query, $bindings = [])
     {
         return $this->statement($query, $bindings, true);
     }
@@ -310,7 +298,7 @@ class Connection extends IlluminateConnection
      *
      * @return SummarizedResult
      */
-    public function affectingStatement($query, $bindings = array())
+    public function affectingStatement($query, $bindings = [])
     {
         return $this->run($query, $bindings, function (self $me, $query, array $bindings) {
             if ($me->pretending()) {
@@ -322,7 +310,7 @@ class Connection extends IlluminateConnection
             // to execute the statement and then we'll use CypherQuery to fetch the affected.
             $query = $me->getCypherQuery($query, $bindings);
 
-            /** @var SummarizedResult $summarizedResult */
+            /* @var SummarizedResult $summarizedResult */
             return $this->getClient()->writeTransaction(static function (TransactionInterface $tsx) use ($query) {
                 return $tsx->run($query['statement'], $query['parameters']);
             });
@@ -337,7 +325,7 @@ class Connection extends IlluminateConnection
      *
      * @return CypherList|bool
      */
-    public function statement($query, $bindings = array(), $rawResults = false)
+    public function statement($query, $bindings = [], $rawResults = false)
     {
         return $this->run($query, $bindings, function (self $me, $query, array $bindings) use ($rawResults) {
             if ($me->pretending()) {
@@ -397,7 +385,7 @@ class Connection extends IlluminateConnection
     {
         $grammar = $this->getQueryGrammar();
 
-        $prepared = array();
+        $prepared = [];
 
         foreach ($bindings as $key => $binding) {
             // The bindings are collected in a little bit different way than
@@ -427,7 +415,7 @@ class Connection extends IlluminateConnection
             // will not accept replacing "id(n)" with a value
             // which have been previously processed by the grammar
             // to be _nodeId instead.
-            if (!is_array($binding)) {
+            if (! is_array($binding)) {
                 $binding = [$binding];
             }
 
@@ -435,7 +423,7 @@ class Connection extends IlluminateConnection
                 // We should not pass any numeric key-value items since the Neo4j client expects
                 // a JSON dictionary.
                 if (is_numeric($property)) {
-                    $property = (!is_numeric($key)) ? $key : 'id';
+                    $property = (! is_numeric($key)) ? $key : 'id';
                 }
 
                 if ($property == 'id') {
@@ -463,7 +451,7 @@ class Connection extends IlluminateConnection
      */
     public function getQueryGrammar()
     {
-        if (!$this->queryGrammar) {
+        if (! $this->queryGrammar) {
             $this->useDefaultQueryGrammar();
         }
 
@@ -492,11 +480,11 @@ class Connection extends IlluminateConnection
      */
     public function isBinding(array $binding)
     {
-        if (!empty($binding)) {
+        if (! empty($binding)) {
             // A binding is valid only when the key is not a number
             $keys = array_keys($binding);
 
-            return !is_numeric(reset($keys));
+            return ! is_numeric(reset($keys));
         }
 
         return false;
@@ -698,7 +686,7 @@ class Connection extends IlluminateConnection
      */
     protected function reconnectIfMissingConnection()
     {
-        if (is_null($this->getClient())) {
+        if (null === $this->getClient()) {
             $this->reconnect();
         }
     }
@@ -724,7 +712,7 @@ class Connection extends IlluminateConnection
      */
     public function getSchemaBuilder()
     {
-        if (is_null($this->schemaGrammar)) {
+        if (null === $this->schemaGrammar) {
             $this->useDefaultSchemaGrammar();
         }
 
@@ -732,7 +720,7 @@ class Connection extends IlluminateConnection
     }
 
     /**
-     * Handle exceptions thrown in $this::run()
+     * Handle exceptions thrown in $this::run().
      *
      * @throws mixed
      */
@@ -749,17 +737,17 @@ class Connection extends IlluminateConnection
         $uri = '';
         $scheme = $this->getScheme($config);
         if ($scheme) {
-            $uri .= $scheme . '://';
+            $uri .= $scheme.'://';
         }
 
         $host = $this->getHost($config);
         if ($host) {
-            $uri .= '@' . $host;
+            $uri .= '@'.$host;
         }
 
         $port = $this->getPort($config);
         if ($port) {
-            $uri .= ':' . $port;
+            $uri .= ':'.$port;
         }
 
         return $uri;

@@ -2,14 +2,12 @@
 
 namespace Vinelab\NeoEloquent\Eloquent;
 
-use Laudis\Neo4j\Types\Node;
 use Illuminate\Database\Eloquent\Builder as IlluminateBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
-use Laudis\Neo4j\Types\CypherList;
+use Laudis\Neo4j\Types\Node;
 use Vinelab\NeoEloquent\Helpers;
-use Vinelab\NeoEloquent\Query\Builder as QueryBuilder;
 use Vinelab\NeoEloquent\QueryException;
 use Vinelab\NeoEloquent\Traits\ResultTrait;
 
@@ -17,7 +15,6 @@ class Builder extends IlluminateBuilder
 {
     use Concerns\QueriesRelationships;
     use ResultTrait;
-
 
     /**
      * The loaded models that should be transformed back
@@ -30,7 +27,6 @@ class Builder extends IlluminateBuilder
      * @var array
      */
     protected $mutations = [];
-
 
     /**
      * Find a model by its primary key.
@@ -113,7 +109,7 @@ class Builder extends IlluminateBuilder
             $resultsByIdentifier = $this->getRecordsByPlaceholders($results);
             $relationships = $this->getRelationshipRecords($results);
 
-            if (!empty($relationships) && !empty($this->mutations)) {
+            if (! empty($relationships) && ! empty($this->mutations)) {
                 $startIdentifier = $this->getStartNodeIdentifier($resultsByIdentifier, $relationships);
                 $endIdentifier = $this->getEndNodeIdentifier($resultsByIdentifier, $relationships);
 
@@ -192,7 +188,7 @@ class Builder extends IlluminateBuilder
     public function newModelFromNode(Node $node, Model $model, $connection = null)
     {
         // let's begin with a proper connection
-        if (!$connection) {
+        if (! $connection) {
             $connection = $model->getConnectionName();
         }
 
@@ -224,7 +220,7 @@ class Builder extends IlluminateBuilder
     {
         $models = [];
 
-        if (!$results->isEmpty()) {
+        if (! $results->isEmpty()) {
             $grammar = $this->getQuery()->getGrammar();
 
 //            $nodesByIdentifier = $results->getAllByIdentifier();
@@ -260,7 +256,7 @@ class Builder extends IlluminateBuilder
 //                    $attributes = $record->values();
 
                     foreach ($records as $record) {
-                        if (!isset($models[$cropped])) {
+                        if (! isset($models[$cropped])) {
                             $models[$cropped] = [];
                         }
 
@@ -292,7 +288,7 @@ class Builder extends IlluminateBuilder
         foreach ($attributes as $mutation => $values) {
             // First we should see whether this mutation can be resolved so that
             // we take it into consideration otherwise we skip to the next iteration.
-            if (!$this->resolvableMutation($mutation)) {
+            if (! $this->resolvableMutation($mutation)) {
                 continue;
             }
             // Since this mutation should be resolved by us then we check whether it is
@@ -321,7 +317,6 @@ class Builder extends IlluminateBuilder
 
         return $mutations;
     }
-
 
     /**
      * In the case of Many mutations we need to return an associative array having both
@@ -360,7 +355,7 @@ class Builder extends IlluminateBuilder
             // we need the model attributes though we might receive a nested
             // array that includes them on level 2 so we check
             // whether what we have is the array of attrs
-            if (!Helpers::isAssocArray($attributesByLabel[$label])) {
+            if (! Helpers::isAssocArray($attributesByLabel[$label])) {
                 $attributes = current($attributesByLabel[$label]);
                 if ($attributes instanceof \Laudis\Neo4j\Types\Node) {
                     $attributes = $this->getNodeAttributes($attributes);
@@ -458,7 +453,7 @@ class Builder extends IlluminateBuilder
 
             // WARNING: Do this after setting all the attributes to avoid overriding it
             // with a null value or colliding it with something else, some Daenerys dragons maybe ?!
-            if (!is_null($columns) && in_array('id', $columns)) {
+            if (null !== $columns && in_array('id', $columns)) {
                 $attributes['id'] = $row['id('.$this->query->modelAsNode().')'];
             }
         } elseif ($result instanceof Node) {
@@ -658,7 +653,7 @@ class Builder extends IlluminateBuilder
      */
     public function isMorphMutation($mutation)
     {
-        if (!is_array($mutation) && isset($this->mutations[$mutation])) {
+        if (! is_array($mutation) && isset($this->mutations[$mutation])) {
             $mutation = $this->getMutation($mutation);
         }
 
@@ -802,7 +797,7 @@ class Builder extends IlluminateBuilder
         foreach ($relations as $relation => $values) {
             $name = $relation;
             // Get the relation by calling the model's relationship function.
-            if (!method_exists($this->model, $relation)) {
+            if (! method_exists($this->model, $relation)) {
                 throw new QueryException("The relation method $relation() does not exist on ".get_class($this->model));
             }
 
@@ -816,8 +811,8 @@ class Builder extends IlluminateBuilder
             // this is probably a One-To-One relationship or the dev decided not to add
             // multiple records as relations so we'll wrap it up in an array.
             if (
-                (!is_array($values) || Helpers::isAssocArray($values) || $values instanceof Model)
-                && !($values instanceof Collection)
+                (! is_array($values) || Helpers::isAssocArray($values) || $values instanceof Model)
+                && ! ($values instanceof Collection)
             ) {
                 $values = [$values];
             }
@@ -847,7 +842,7 @@ class Builder extends IlluminateBuilder
                 // Or in the case where the attributes are neither an array nor a model instance
                 // then this is assumed to be the model Id that the dev means to attach and since
                 // Neo4j node Ids are always an int then we take that as a value.
-                elseif (!is_array($value) && !$value instanceof Model) {
+                elseif (! is_array($value) && ! $value instanceof Model) {
                     $attach[] = $value;
                 }
                 // In this case the record is considered to be new to the market so let's create it.
@@ -863,7 +858,7 @@ class Builder extends IlluminateBuilder
         $result = $this->query->createWith($model, $related);
         $models = $this->resultsToModelsWithRelations($this->model->getConnectionName(), $result);
 
-        return (!empty($models)) ? $models : null;
+        return (! empty($models)) ? $models : null;
     }
 
     /**
@@ -901,14 +896,13 @@ class Builder extends IlluminateBuilder
         return $instance->toArray();
     }
 
-
     /**
      * Prefix query bindings and wheres with the relation's model Node placeholder.
      *
      * @param Builder $query
      * @param string                                $prefix
      */
-    protected function prefixAndMerge(Builder $query, $prefix)
+    protected function prefixAndMerge(self $query, $prefix)
     {
         if (is_array($query->getQuery()->wheres)) {
             $query->getQuery()->wheres = $this->prefixWheres($query->getQuery()->wheres, $prefix);
@@ -930,7 +924,7 @@ class Builder extends IlluminateBuilder
         return array_map(function ($where) use ($prefix) {
             if ($where['type'] == 'Nested') {
                 $where['query']->wheres = $this->prefixWheres($where['query']->wheres, $prefix);
-            } else if ($where['type'] != 'Carried' && strpos($where['column'], '.') == false) {
+            } elseif ($where['type'] != 'Carried' && mb_strpos($where['column'], '.') == false) {
                 $column = $where['column'];
                 $where['column'] = ($this->isId($column)) ? $column : $prefix.'.'.$column;
             }
@@ -972,7 +966,7 @@ class Builder extends IlluminateBuilder
      */
     protected function addUpdatedAtColumn(array $values)
     {
-        if (!$this->model->usesTimestamps()) {
+        if (! $this->model->usesTimestamps()) {
             return $values;
         }
 
@@ -982,9 +976,6 @@ class Builder extends IlluminateBuilder
             $this->model->freshTimestampString()
         );
     }
-
-
-
 
     /**
      * Nest where conditions by slicing them at the given where count.
@@ -1003,11 +994,13 @@ class Builder extends IlluminateBuilder
         $query->wheres = [];
 
         $this->groupWhereSliceForScope(
-            $query, array_slice($allWheres, 0, $originalWhereCount)
+            $query,
+            array_slice($allWheres, 0, $originalWhereCount)
         );
 
         $this->groupWhereSliceForScope(
-            $query, array_slice($allWheres, $originalWhereCount)
+            $query,
+            array_slice($allWheres, $originalWhereCount)
         );
     }
 
@@ -1027,7 +1020,8 @@ class Builder extends IlluminateBuilder
         // we don't add any unnecessary nesting thus keeping the query clean.
         if ($whereBooleans->contains('or')) {
             $query->wheres[] = $this->createNestedWhere(
-                $whereSlice, $whereBooleans->first()
+                $whereSlice,
+                $whereBooleans->first()
             );
         } else {
             $query->wheres = array_merge($query->wheres, $whereSlice);

@@ -2,15 +2,14 @@
 
 namespace Vinelab\NeoEloquent\Eloquent\Edges;
 
+use GraphAware\Bolt\Result\Result as GraphawareResult;
+use GraphAware\Neo4j\Client\Formatter\Result;
+use Illuminate\Database\Eloquent\Collection;
 use Laudis\Neo4j\Types\CypherMap;
 use Laudis\Neo4j\Types\Relationship;
-use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Eloquent\Builder;
-use \Illuminate\Database\Eloquent\Collection;
-use GraphAware\Neo4j\Client\Formatter\Result;
+use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Traits\ResultTrait;
-use GraphAware\Bolt\Result\Result as GraphawareResult;
-use GraphAware\Common\Result\RecordViewInterface;
 
 class Finder extends Delegate
 {
@@ -46,7 +45,7 @@ class Finder extends Delegate
 
         // Let's stop here if there is no relationship between them.
         if ($results->isEmpty()) {
-            return null;
+            return;
         }
 
         $record = $results->first();

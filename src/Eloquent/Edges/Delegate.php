@@ -7,9 +7,9 @@ use Laudis\Neo4j\Types\CypherMap;
 use Laudis\Neo4j\Types\Node;
 use Laudis\Neo4j\Types\Relationship;
 use Vinelab\NeoEloquent\Connection;
+use Vinelab\NeoEloquent\Eloquent\Builder;
 use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Exceptions\QueryException;
-use Vinelab\NeoEloquent\Eloquent\Builder;
 
 abstract class Delegate
 {
@@ -123,7 +123,7 @@ abstract class Delegate
      *
      * @return Relationship
      */
-    protected function makeRelationship($type, $startModel, $endModel, $properties = array())
+    protected function makeRelationship($type, $startModel, $endModel, $properties = [])
     {
         $grammar = $this->query->getQuery()->getGrammar();
         $attributes = $this->getRelationshipAttributes($startModel, $endModel, $properties);
@@ -211,7 +211,7 @@ abstract class Delegate
         try {
             return $this->client->commitBatch();
         } catch (\Exception $e) {
-            throw new QueryException('Error committing batch operation.', array(), $e);
+            throw new QueryException('Error committing batch operation.', [], $e);
         }
     }
 
@@ -232,7 +232,7 @@ abstract class Delegate
     public function getRealDirection($direction)
     {
         if (in_array($direction, ['in', 'out'])) {
-            $direction = strtoupper($direction);
+            $direction = mb_strtoupper($direction);
         }
 
         return $direction;

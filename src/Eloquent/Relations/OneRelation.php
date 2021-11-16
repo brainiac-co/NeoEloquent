@@ -146,7 +146,7 @@ abstract class OneRelation extends BelongsTo implements RelationInterface
                 $model = reset($model);
             }
 
-            if (!is_null($value = $model->{$this->ownerKey})) {
+            if (null !== ($value = $model->{$this->ownerKey})) {
                 $keys[] = $value;
             }
         }

@@ -118,7 +118,7 @@ class MorphTo extends OneRelation
      */
     public function getEdge(EloquentModel $model = null, $attributes = [])
     {
-        $model = (!is_null($model)) ? $model : $this->parent->{$this->relationName};
+        $model = (null !== $model) ? $model : $this->parent->{$this->relationName};
 
         // Indicate a unique relationship since this involves one other model.
         $unique = true;

@@ -28,7 +28,7 @@ class HasMany extends HasOneOrMany
      */
     public function getEdge(EloquentModel $model = null, $attributes = [])
     {
-        $model = (!is_null($model)) ? $model : $this->parent->{$this->relation};
+        $model = (null !== $model) ? $model : $this->parent->{$this->relation};
 
         return new EdgeOut($this->query, $this->parent, $model, $this->type, $attributes);
     }

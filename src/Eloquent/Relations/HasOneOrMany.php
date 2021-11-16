@@ -362,7 +362,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
             $models = [$id];
         } elseif ($id instanceof Collection) {
             $models = $id->all();
-        } elseif (!$this->isArrayOfModels($id)) {
+        } elseif (! $this->isArrayOfModels($id)) {
             $models = $this->modelsFromIds($id);
             // In case someone is messing with us and passed a bunch of ids (or single id)
             // that do not exist we slap them in the face with a ModelNotFoundException.
@@ -380,7 +380,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
             $this->touchIfTouching();
         }
 
-        return (!is_array($id)) ? $saved->first() : $saved;
+        return (! is_array($id)) ? $saved->first() : $saved;
     }
 
     /**
@@ -393,9 +393,9 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
      */
     public function detach($id = [], $touch = true)
     {
-        if (!$id instanceof Model && !$id instanceof Collection) {
+        if (! $id instanceof Model && ! $id instanceof Collection) {
             $id = $this->modelsFromIds($id);
-        } elseif (!is_array($id) && !$id instanceof Collection) {
+        } elseif (! is_array($id) && ! $id instanceof Collection) {
             $id = [$id];
         }
 
@@ -414,7 +414,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
             $this->touchIfTouching();
         }
 
-        return !in_array(false, $results);
+        return ! in_array(false, $results);
     }
 
     public function delete($shouldKeepEndNode = false)
@@ -439,7 +439,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
         // get them as collection
         if ($ids instanceof Collection) {
             $ids = $ids->modelKeys();
-        } elseif (!is_array($ids)) {
+        } elseif (! is_array($ids)) {
             $ids = [$ids];
         }
 
@@ -451,7 +451,9 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
         // Let's fetch the existing edges first.
         $edges = $this->edges();
         // Collect the current related models IDs out of related models.
-        $current = array_map(function (Edge $edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $current = array_map(function (Edge $edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         $records = $this->formatSyncList($ids);
 
@@ -493,7 +495,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
             // If the ID is not in the list of existing pivot IDs, we will insert a new pivot
             // record, otherwise, we will just update this existing record on this joining
             // table, so that the developers will easily update these records pain free.
-            if (!in_array($id, $current)) {
+            if (! in_array($id, $current)) {
                 $this->attach($id, $attributes, $touch);
 
                 $changes['attached'][] = (int) $id;
@@ -506,7 +508,6 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
 
         return $changes;
     }
-
 
     /**
      * Perform an update on all the related models.
@@ -552,7 +553,7 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
         $results = [];
 
         foreach ($records as $id => $attributes) {
-            if (!is_array($attributes)) {
+            if (! is_array($attributes)) {
                 list($id, $attributes) = [$attributes, []];
             }
 
@@ -623,12 +624,12 @@ abstract class HasOneOrMany extends IlluminateHasOneOrMany implements RelationIn
      */
     public function isArrayOfModels($models)
     {
-        if (!is_array($models)) {
+        if (! is_array($models)) {
             return false;
         }
 
         $notModels = array_filter($models, function ($model) {
-            return !$model instanceof Model;
+            return ! $model instanceof Model;
         });
 
         return empty($notModels);

@@ -2,16 +2,15 @@
 
 namespace Vinelab\NeoEloquent\Eloquent\Edges;
 
-use DateTime;
 use Carbon\Carbon;
-use GraphAware\Neo4j\Client\Formatter\Result;
-use GraphAware\Common\Result\RecordViewInterface;
+use DateTime;
 use GraphAware\Bolt\Result\Type\Relationship;
+use GraphAware\Neo4j\Client\Formatter\Result;
 use Laudis\Neo4j\Types\CypherMap;
 use Laudis\Neo4j\Types\Node;
-use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Eloquent\Builder;
 use Vinelab\NeoEloquent\Eloquent\Collection;
+use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Exceptions\NoEdgeDirectionException;
 use Vinelab\NeoEloquent\Traits\ResultTrait;
 
@@ -65,14 +64,14 @@ abstract class Edge extends Delegate
      *
      * @var array
      */
-    protected $attributes = array();
+    protected $attributes = [];
 
     /**
      * The attributes that should be mutated to dates.
      *
      * @var array
      */
-    protected $dates = array();
+    protected $dates = [];
 
     /**
      * Holds the decision on whether
@@ -135,7 +134,7 @@ abstract class Edge extends Delegate
      * @param \Vinelab\NeoEloquent\Eloquent\Model   $related
      * @param string                                $type
      */
-    public function __construct(Builder $query, Model $parent, Model $related, $type, $attributes = array(), $unique = false)
+    public function __construct(Builder $query, Model $parent, Model $related, $type, $attributes = [], $unique = false)
     {
         parent::__construct($query);
 
@@ -196,7 +195,7 @@ abstract class Edge extends Delegate
     {
         $results = $this->finder->firstRelationWithNodes($this->parent, $this->related, $this->type, $this->direction);
 
-        return !$results->isEmpty() ? $this->newFromRelation($results->first()) : null;
+        return ! $results->isEmpty() ? $this->newFromRelation($results->first()) : null;
     }
 
     /**
@@ -208,16 +207,16 @@ abstract class Edge extends Delegate
     {
         $this->updateTimestamps();
 
-         /*
-         * If this is a unique relationship we should check for an existing
-         * one of the same type and direction for the $parent node before saving
-         * and delete it, unless we are updating an existing relationship.
-         */
-        if ($this->unique && !$this->exists()) {
+        /*
+        * If this is a unique relationship we should check for an existing
+        * one of the same type and direction for the $parent node before saving
+        * and delete it, unless we are updating an existing relationship.
+        */
+        if ($this->unique && ! $this->exists()) {
             $endModel = $this->related->newInstance();
             $existing = $this->firstRelationWithNodes($this->parent, $endModel, $this->type, $this->direction);
 
-            if(!$existing->isEmpty()) {
+            if (! $existing->isEmpty()) {
                 $instance = $this->newFromRelation($existing->first());
                 $instance->delete();
             }
@@ -434,7 +433,7 @@ abstract class Edge extends Delegate
      */
     public function getDates()
     {
-        $defaults = array(static::CREATED_AT, static::UPDATED_AT);
+        $defaults = [static::CREATED_AT, static::UPDATED_AT];
 
         return array_merge($this->dates, $defaults);
     }
@@ -466,7 +465,7 @@ abstract class Edge extends Delegate
      */
     public function getModels()
     {
-        return new Collection(array($this->parent, $this->related));
+        return new Collection([$this->parent, $this->related]);
     }
 
     /**
@@ -518,7 +517,7 @@ abstract class Edge extends Delegate
      */
     public function getNodes()
     {
-        return new Collection(array($this->start, $this->end));
+        return new Collection([$this->start, $this->end]);
     }
 
     /**
@@ -592,7 +591,7 @@ abstract class Edge extends Delegate
         // If this value is some other type of string, we'll create the DateTime with
         // the format used by the database connection. Once we get the instance we
         // can return back the finally formatted DateTime instances to the devs.
-        elseif (!$value instanceof DateTime) {
+        elseif (! $value instanceof DateTime) {
             $value = Carbon::createFromFormat($format, $value);
         }
 
@@ -625,7 +624,7 @@ abstract class Edge extends Delegate
         // Finally, we will just assume this date is in the format used by default on
         // the database connection and use that format to create the Carbon object
         // that is returned back out to the developers after we convert it here.
-        elseif (!$value instanceof DateTime) {
+        elseif (! $value instanceof DateTime) {
             $format = $this->getDateFormat();
 
             return Carbon::createFromFormat($format, $value);
@@ -674,7 +673,7 @@ abstract class Edge extends Delegate
 
             $this->setUpdatedAt($time);
 
-            if (!$this->exists()) {
+            if (! $this->exists()) {
                 $this->setCreatedAt($time);
             }
         }

@@ -2,11 +2,11 @@
 
 namespace Vinelab\NeoEloquent\Query\Grammars;
 
-use DateTime;
 use Carbon\Carbon;
+use DateTime;
+use Illuminate\Database\Query\Grammars\Grammar as IlluminateGrammar;
 use Vinelab\NeoEloquent\Query\Builder;
 use Vinelab\NeoEloquent\Query\Expression;
-use \Illuminate\Database\Query\Grammars\Grammar as IlluminateGrammar;
 
 abstract class Grammar extends IlluminateGrammar
 {
@@ -96,7 +96,7 @@ abstract class Grammar extends IlluminateGrammar
 
         $property = $this->getIdReplacement($value);
 
-        if (strpos($property, '.') !== false) {
+        if (mb_strpos($property, '.') !== false) {
             $property = explode('.', $property)[1];
         }
 
@@ -115,7 +115,7 @@ abstract class Grammar extends IlluminateGrammar
     {
         if (is_array($labels)) {
             // get the labels prepared and back to a string imploded by : they go.
-            $labels = implode('', array_map(array($this, 'wrapLabel'), $labels));
+            $labels = implode('', array_map([$this, 'wrapLabel'], $labels));
         }
 
         return $labels;
@@ -186,7 +186,7 @@ abstract class Grammar extends IlluminateGrammar
         // We will only wrap the value unless it has parentheses
         // in it which is the case where we're matching a node by id, or an *
         // and last whether this is a pre-formatted key.
-        if (preg_match('/[(|)]/', $value) || $value == '*' || strpos($value, '.') !== false) {
+        if (preg_match('/[(|)]/', $value) || $value == '*' || mb_strpos($value, '.') !== false) {
             return $value;
         }
 
@@ -243,7 +243,7 @@ abstract class Grammar extends IlluminateGrammar
         $arrayValue = true;
 
         // we'll only deal with arrays so let's turn it into one if it isn't
-        if (!is_array($values)) {
+        if (! is_array($values)) {
             $arrayValue = false;
             $values = [$values];
         }
@@ -269,7 +269,6 @@ abstract class Grammar extends IlluminateGrammar
             }
 
             return $value;
-
         }, $values);
 
         // stringify them.
@@ -288,7 +287,7 @@ abstract class Grammar extends IlluminateGrammar
      */
     public function modelAsNode($labels = null, $relation = null)
     {
-        if (is_null($labels)) {
+        if (null === $labels) {
             return 'n';
         } elseif (is_array($labels)) {
             $labels = implode('_', $labels);   // Or just replace with this
@@ -297,7 +296,7 @@ abstract class Grammar extends IlluminateGrammar
         // When this is a related node we'll just prepend it with 'with_' that way we avoid
         // clashing node models in the cases like using recursive model relations.
         // @see https://github.com/Vinelab/NeoEloquent/issues/7
-        if (!is_null($relation)) {
+        if (null !== $relation) {
             $labels = 'with_'.$relation.'_'.$labels;
         }
 
@@ -326,12 +325,12 @@ abstract class Grammar extends IlluminateGrammar
         // Check whether the column is still id so that we transform it to the form id(n) and then
         // recursively calling ourself to reformat accordingly.
         if ($column == 'id') {
-            $from = (!is_null($this->query)) ? $this->query->from : null;
+            $from = (null !== $this->query) ? $this->query->from : null;
             $column = $this->getIdReplacement('id('.$this->modelAsNode($from).')');
         }
         // When it's a form of node.attribute we'll just remove the '.' so that
         // we get a consistent form of binding key/value pairs.
-        elseif (strpos($column, '.')) {
+        elseif (mb_strpos($column, '.')) {
             return str_replace('.', '', $column);
         }
 
@@ -377,7 +376,7 @@ abstract class Grammar extends IlluminateGrammar
             // From the Neo4j docs:
             //  "NULL is not a valid property value. NULLs can instead be modeled by the absence of a key."
             // So we'll just ignore null keys if they occur.
-            if (is_null($value)) {
+            if (null === $value) {
                 continue;
             }
 

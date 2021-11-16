@@ -2,26 +2,22 @@
 
 namespace Vinelab\NeoEloquent\Query;
 
+use BadMethodCallException;
+use Carbon\Carbon;
 use Closure;
 use DateTime;
-use Carbon\Carbon;
-use BadMethodCallException;
-use InvalidArgumentException;
+use GraphAware\Common\Result\AbstractRecordCursor as Result;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as IlluminateQueryBuilder;
+use Illuminate\Database\Query\Processors\Processor as IlluminateProcessor;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Str;
 use Laudis\Neo4j\Types\CypherList;
 use Laudis\Neo4j\Types\Node;
 use Vinelab\NeoEloquent\Connection;
-use Vinelab\NeoEloquent\ConnectionInterface;
-use GraphAware\Common\Result\AbstractRecordCursor as Result;
 use Vinelab\NeoEloquent\Query\Grammars\Grammar;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\Paginator;
 use Vinelab\NeoEloquent\Traits\ResultTrait;
-use Illuminate\Database\Query\Processors\Processor as IlluminateProcessor;
-use Illuminate\Database\Query\Builder as IlluminateQueryBuilder;
 
 class Builder extends IlluminateQueryBuilder
 {
@@ -39,42 +35,42 @@ class Builder extends IlluminateQueryBuilder
      *
      * @var array
      */
-    public $matches = array();
+    public $matches = [];
 
     /**
      * The WITH parts of the query.
      *
      * @var array
      */
-    public $with = array();
+    public $with = [];
 
     /**
      * The current query value bindings.
      *
      * @var array
      */
-    public $bindings = array(
+    public $bindings = [
         'matches' => [],
         'select' => [],
         'join' => [],
         'where' => [],
         'having' => [],
         'order' => [],
-    );
+    ];
 
     /**
      * All of the available clause operators.
      *
      * @var array
      */
-    public $operators = array(
+    public $operators = [
         '+', '-', '*', '/', '%', '^',    // Mathematical
         '=', '<>', '<', '>', '<=', '>=', // Comparison
         'is null', 'is not null',
         'and', 'or', 'xor', 'not',       // Boolean
         'in', '[x]', '[x .. y]',         // Collection
         '=~',                             // Regular Expression
-    );
+    ];
 
     /**
      * An aggregate function and column to be run.
@@ -251,6 +247,7 @@ class Builder extends IlluminateQueryBuilder
 
         /** @var Node $node */
         $node = $results->first()->first()->getValue();
+
         return $node->getId();
     }
 
@@ -307,7 +304,7 @@ class Builder extends IlluminateQueryBuilder
         // We will run through all the bindings and pluck out
         // the component (select, where, etc.)
         foreach ($this->bindings as $component => $binding) {
-            if (!empty($binding)) {
+            if (! empty($binding)) {
                 // For every binding there could be multiple
                 // values set so we need to add all of them as
                 // flat $key => $value item in our $bindings.
@@ -319,6 +316,7 @@ class Builder extends IlluminateQueryBuilder
 
         return $bindings;
     }
+
     /**
      * Add a basic where clause to the query.
      *
@@ -351,7 +349,7 @@ class Builder extends IlluminateQueryBuilder
         }
 
         if (func_num_args() == 2) {
-            list($value, $operator) = array($operator, '=');
+            list($value, $operator) = [$operator, '='];
         } elseif ($this->invalidOperatorAndValue($operator, $value)) {
             throw new \InvalidArgumentException('Value must be provided.');
         }
@@ -366,8 +364,8 @@ class Builder extends IlluminateQueryBuilder
         // If the given operator is not found in the list of valid operators we will
         // assume that the developer is just short-cutting the '=' operators and
         // we will set the operators to '=' and set the values appropriately.
-        if (!in_array(mb_strtolower($operator), $this->operators, true)) {
-            list($value, $operator) = array($operator, '=');
+        if (! in_array(mb_strtolower($operator), $this->operators, true)) {
+            list($value, $operator) = [$operator, '='];
         }
 
         // If the value is a Closure, it means the developer is performing an entire
@@ -380,7 +378,7 @@ class Builder extends IlluminateQueryBuilder
         // If the value is "null", we will just assume the developer wants to add a
         // where null clause to the query. So, we will allow a short-cut here to
         // that method for convenience so the developer doesn't have to check.
-        if (is_null($value)) {
+        if (null === $value) {
             return $this->whereNull($column, $boolean, $operator != '=');
         }
 
@@ -415,7 +413,7 @@ class Builder extends IlluminateQueryBuilder
 
         $property = $this->wrap($binding);
 
-        if (!$value instanceof Expression) {
+        if (! $value instanceof Expression) {
             $this->addBinding([$property => $value], 'where');
         }
 
@@ -442,7 +440,7 @@ class Builder extends IlluminateQueryBuilder
         }
 
         // we prefix when we do have a prefix ($this->from) and when the column isn't an id (id(abc..)).
-        $prefix = (!preg_match('/id([a-zA-Z0-9]?)/', $column) && !empty($this->from)) ? mb_strtolower($prefix) : '';
+        $prefix = (! preg_match('/id([a-zA-Z0-9]?)/', $column) && ! empty($this->from)) ? mb_strtolower($prefix) : '';
 
         return $prefix.$binding;
     }
@@ -520,7 +518,6 @@ class Builder extends IlluminateQueryBuilder
         $this->bindingBackups = [];
     }
 
-
     /**
      * Delete a record from the database.
      *
@@ -533,7 +530,7 @@ class Builder extends IlluminateQueryBuilder
         // If an ID is passed to the method, we will set the where clause to check
         // the ID to allow developers to simply and quickly remove a single row
         // from their database without manually specifying the where clauses.
-        if (!is_null($id)) {
+        if (null !== $id) {
             $this->where('id', '=', $id);
         }
 
@@ -547,7 +544,6 @@ class Builder extends IlluminateQueryBuilder
 
         return $result;
     }
-
 
     /**
      * Get the number of occurrences of a column in where clauses.
@@ -684,15 +680,15 @@ class Builder extends IlluminateQueryBuilder
      */
     public function with(array $parts)
     {
-        if($this->isAssocArray($parts)) {
+        if ($this->isAssocArray($parts)) {
             foreach ($parts as $key => $part) {
-                if (!in_array($part, $this->with)) {
+                if (! in_array($part, $this->with)) {
                     $this->with[$key] = $part;
                 }
             }
         } else {
             foreach ($parts as $part) {
-                if (!in_array($part, $this->with)) {
+                if (! in_array($part, $this->with)) {
                     $this->with[] = $part;
                 }
             }
@@ -713,8 +709,8 @@ class Builder extends IlluminateQueryBuilder
         // Since every insert gets treated like a batch insert, we will make sure the
         // bindings are structured in a way that is convenient for building these
         // inserts statements by verifying the elements are actually an array.
-        if (!is_array(reset($values))) {
-            $values = array($values);
+        if (! is_array(reset($values))) {
+            $values = [$values];
         }
 
         // Since every insert gets treated like a batch insert, we will make sure the
@@ -731,7 +727,7 @@ class Builder extends IlluminateQueryBuilder
         // We'll treat every insert like a batch insert so we can easily insert each
         // of the records into the database consistently. This will make it much
         // easier on the grammars to just handle one type of record insertion.
-        $bindings = array();
+        $bindings = [];
 
         foreach ($values as $record) {
             $bindings[] = $record;
@@ -746,7 +742,7 @@ class Builder extends IlluminateQueryBuilder
 
         $results = $this->connection->insert($cypher, $bindings);
 
-        return !!$results;
+        return (bool) $results;
     }
 
     /**
@@ -772,9 +768,9 @@ class Builder extends IlluminateQueryBuilder
      *
      * @return array|static[]
      */
-    public function getFresh($columns = array('*'))
+    public function getFresh($columns = ['*'])
     {
-        if (is_null($this->columns)) {
+        if (null === $this->columns) {
             $this->columns = $columns;
         }
 
@@ -821,23 +817,23 @@ class Builder extends IlluminateQueryBuilder
         $relatedLabels = $related->getTable();
         $parentNode = $this->modelAsNode($parentLabels);
 
-        $this->matches[] = array(
+        $this->matches[] = [
             'type' => 'Relation',
             'optional' => $boolean,
             'property' => $property,
             'direction' => $direction,
             'relationship' => $relationship,
-            'parent' => array(
+            'parent' => [
                 'node' => $parentNode,
                 'labels' => $parentLabels,
-            ),
-            'related' => array(
+            ],
+            'related' => [
                 'node' => $relatedNode,
                 'labels' => $relatedLabels,
-            ),
-        );
+            ],
+        ];
 
-        $this->addBinding(array($this->wrap($property) => $value), 'matches');
+        $this->addBinding([$this->wrap($property) => $value], 'matches');
 
         return $this;
     }
@@ -847,19 +843,19 @@ class Builder extends IlluminateQueryBuilder
         $parentLabels = $parent->getTable();
         $parentNode = $this->modelAsNode($parentLabels);
 
-        $this->matches[] = array(
+        $this->matches[] = [
             'type' => 'MorphTo',
             'optional' => 'and',
             'property' => $property,
             'direction' => $direction,
-            'related' => array('node' => $relatedNode),
-            'parent' => array(
+            'related' => ['node' => $relatedNode],
+            'parent' => [
                 'node' => $parentNode,
                 'labels' => $parentLabels,
-            ),
-        );
+            ],
+        ];
 
-        $this->addBinding(array($property => $value), 'matches');
+        $this->addBinding([$property => $value], 'matches');
 
         return $this;
     }
@@ -875,7 +871,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function percentileDisc($column, $percentile = 0.0)
     {
-        return $this->aggregate(__FUNCTION__, array($column), $percentile);
+        return $this->aggregate(__FUNCTION__, [$column], $percentile);
     }
 
     /**
@@ -890,7 +886,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function percentileCont($column, $percentile = 0.0)
     {
-        return $this->aggregate(__FUNCTION__, array($column), $percentile);
+        return $this->aggregate(__FUNCTION__, [$column], $percentile);
     }
 
     /**
@@ -902,7 +898,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function stdev($column)
     {
-        return $this->aggregate(__FUNCTION__, array($column));
+        return $this->aggregate(__FUNCTION__, [$column]);
     }
 
     /**
@@ -914,7 +910,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function stdevp($column)
     {
-        return $this->aggregate(__FUNCTION__, array($column));
+        return $this->aggregate(__FUNCTION__, [$column]);
     }
 
     /**
@@ -926,7 +922,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function collect($column)
     {
-        $row = $this->aggregate(__FUNCTION__, array($column));
+        $row = $this->aggregate(__FUNCTION__, [$column]);
 
         $collected = [];
 
@@ -946,7 +942,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function countDistinct($column)
     {
-        return (int) $this->aggregate(__FUNCTION__, array($column));
+        return (int) $this->aggregate(__FUNCTION__, [$column]);
     }
 
     /**
@@ -957,7 +953,7 @@ class Builder extends IlluminateQueryBuilder
      *
      * @return mixed
      */
-    public function aggregate($function, $columns = array('*'), $percentile = null)
+    public function aggregate($function, $columns = ['*'], $percentile = null)
     {
         $this->aggregate = array_merge([
             'label' => $this->from,
@@ -977,7 +973,7 @@ class Builder extends IlluminateQueryBuilder
         $values = $this->getRecordsByPlaceholders($results);
 
         $value = reset($values);
-        if(is_array($value)) {
+        if (is_array($value)) {
             return current($value);
         } else {
             return $value;
@@ -997,7 +993,7 @@ class Builder extends IlluminateQueryBuilder
         if (is_array($value)) {
             $key = array_keys($value)[0];
 
-            if (strpos($key, '.') !== false) {
+            if (mb_strpos($key, '.') !== false) {
                 $binding = $value[$key];
                 unset($value[$key]);
                 $key = explode('.', $key)[1];
@@ -1005,7 +1001,7 @@ class Builder extends IlluminateQueryBuilder
             }
         }
 
-        if (!array_key_exists($type, $this->bindings)) {
+        if (! array_key_exists($type, $this->bindings)) {
             throw new \InvalidArgumentException("Invalid binding type: {$type}.");
         }
 
@@ -1044,7 +1040,7 @@ class Builder extends IlluminateQueryBuilder
      */
     public function modelAsNode(array $labels = null)
     {
-        $labels = (!is_null($labels)) ? $labels : $this->from;
+        $labels = (null !== $labels) ? $labels : $this->from;
 
         return $this->grammar->modelAsNode($labels);
     }
@@ -1147,5 +1143,4 @@ class Builder extends IlluminateQueryBuilder
     {
         return is_array($array) && array_keys($array) !== range(0, count($array) - 1);
     }
-
 }

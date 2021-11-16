@@ -58,7 +58,7 @@ class Grammar extends IlluminateSchemaGrammar
      */
     public function modelAsNode($labels = null)
     {
-        if (is_null($labels)) {
+        if (null === $labels) {
             return 'n';
         } elseif (is_array($labels)) {
             $labels = reset($labels);

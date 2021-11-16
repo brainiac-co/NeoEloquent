@@ -4,16 +4,14 @@ namespace Vinelab\NeoEloquent;
 
 use Closure;
 use Exception;
-use Vinelab\NeoEloquent\Exceptions\QueryException;
-use Vinelab\NeoEloquent\ConnectionInterface;
-
 use Illuminate\Contracts\Events\Dispatcher as IlluminateDispatcher;
+use Illuminate\Database\Connection as BaseConnection;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Database\Query\Processors\Processor;
-use Illuminate\Database\Connection as BaseConnection;
-use Illuminate\Database\Schema\Grammars\Grammar as SchemaGrammar;
 use Illuminate\Database\QueryException as IlluminateQueryException;
+use Illuminate\Database\Schema\Grammars\Grammar as SchemaGrammar;
 use Illuminate\Events\Dispatcher;
+use Vinelab\NeoEloquent\Exceptions\QueryException;
 
 class ConnectionAdapter extends BaseConnection
 {
@@ -21,7 +19,6 @@ class ConnectionAdapter extends BaseConnection
     {
         $this->neoeloquent = app('neoeloquent.connection');
     }
-
 
     /**
      * Set the query grammar to the default implementation.
@@ -122,7 +119,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  array   $bindings
      * @return array
      */
-    public function selectFromWriteConnection($query, $bindings = array())
+    public function selectFromWriteConnection($query, $bindings = [])
     {
         return $this->neoeloquent->selectFromWriteConnection($query, $bindings);
     }
@@ -135,7 +132,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  bool  $useReadPdo
      * @return array
      */
-    public function select($query, $bindings = array(), $useReadPdo = true)
+    public function select($query, $bindings = [], $useReadPdo = true)
     {
         return $this->neoeloquent->select($query, $bindings);
     }
@@ -147,7 +144,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  array   $bindings
      * @return bool
      */
-    public function insert($query, $bindings = array())
+    public function insert($query, $bindings = [])
     {
         return $this->neoeloquent->insert($query, $bindings);
     }
@@ -159,7 +156,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  array   $bindings
      * @return int
      */
-    public function update($query, $bindings = array())
+    public function update($query, $bindings = [])
     {
         return $this->neoeloquent->update($query, $bindings);
     }
@@ -171,7 +168,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  array   $bindings
      * @return int
      */
-    public function delete($query, $bindings = array())
+    public function delete($query, $bindings = [])
     {
         return $this->neoeloquent->delete($query, $bindings);
     }
@@ -183,7 +180,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  array   $bindings
      * @return bool
      */
-    public function statement($query, $bindings = array(), $rawResults = false)
+    public function statement($query, $bindings = [], $rawResults = false)
     {
         return $this->neoeloquent->statement($query, $bindings, $rawResults);
     }
@@ -195,7 +192,7 @@ class ConnectionAdapter extends BaseConnection
      * @param  array   $bindings
      * @return int
      */
-    public function affectingStatement($query, $bindings = array())
+    public function affectingStatement($query, $bindings = [])
     {
         return $this->neoeloquent->affectingStatement($query, $bindings);
     }

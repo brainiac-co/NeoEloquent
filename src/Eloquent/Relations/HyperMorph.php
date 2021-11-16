@@ -137,7 +137,7 @@ class HyperMorph extends BelongsToMany
 
     public function getEdge(EloquentModel $model = null, $properties = [])
     {
-        $model = (!is_null($model)) ? $model : $this->related;
+        $model = (null !== $model) ? $model : $this->related;
 
         return new HyperEdge($this->query, $this->parent, $this->type, $model, $this->morphType, $this->morph, $properties);
     }

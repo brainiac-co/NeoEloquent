@@ -26,7 +26,7 @@ class MigrationCreator extends IlluminateMigrationCreator
         // Here we will replace the label place-holders with the label specified by
         // the developer, which is useful for quickly creating a labels creation
         // or update migration from the console instead of typing it manually.
-        if (!is_null($label)) {
+        if (null !== $label) {
             $stub = str_replace(
                 ['DummyTable', '{{ table }}', '{{table}}'],
                 $table,

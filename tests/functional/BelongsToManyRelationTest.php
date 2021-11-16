@@ -3,10 +3,10 @@
 namespace Vinelab\NeoEloquent\Tests\Functional\Relations\BelongsToMany;
 
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Mockery as M;
-use \Illuminate\Database\Eloquent\ModelNotFoundException;
-use Vinelab\NeoEloquent\Tests\TestCase;
 use Vinelab\NeoEloquent\Eloquent\Model;
+use Vinelab\NeoEloquent\Tests\TestCase;
 
 class User extends Model
 {
@@ -42,10 +42,14 @@ class BelongsToManyRelationTest extends TestCase
         M::close();
 
         $users = User::all();
-        $users->each(function ($u) { $u->delete(); });
+        $users->each(function ($u) {
+            $u->delete();
+        });
 
         $roles = Role::all();
-        $roles->each(function ($r) { $r->delete(); });
+        $roles->each(function ($r) {
+            $r->delete();
+        });
 
         parent::tearDown();
     }
@@ -211,7 +215,9 @@ class BelongsToManyRelationTest extends TestCase
         $this->assertInstanceOf(Collection::class, $edges);
         $this->assertCount(3, $edges->toArray());
 
-        $edges->each(function ($edge) { $edge->delete(); });
+        $edges->each(function ($edge) {
+            $edge->delete();
+        });
     }
 
     public function testSyncingModelIds()
@@ -227,7 +233,9 @@ class BelongsToManyRelationTest extends TestCase
 
         $edges = $user->roles()->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         $this->assertTrue(in_array($admin->getKey(), $edgesIds));
         $this->assertTrue(in_array($editor->getKey(), $edgesIds));
@@ -251,7 +259,9 @@ class BelongsToManyRelationTest extends TestCase
 
         $edges = $user->roles()->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         $this->assertTrue(in_array($admin->id, $edgesIds));
         $this->assertTrue(in_array($editor->id, $edgesIds));
@@ -279,7 +289,9 @@ class BelongsToManyRelationTest extends TestCase
 
         $edges = $user->roles()->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         // count the times that $master->id exists, it it were more than 1 then the relationship hasn't been updated,
         // instead it was duplicated
@@ -290,7 +302,7 @@ class BelongsToManyRelationTest extends TestCase
         $this->assertTrue(in_array($editor->id, $edgesIds));
         $this->assertTrue(in_array($master->id, $edgesIds));
 
-        $expectedEdgesTypes = array('Editor', 'Admin', 'Master');
+        $expectedEdgesTypes = ['Editor', 'Admin', 'Master'];
 
         foreach ($edges as $key => $edge) {
             $attributes = $edge->toArray();
@@ -316,7 +328,9 @@ class BelongsToManyRelationTest extends TestCase
             $this->assertGreaterThan(0, $role->id);
         }
 
-        $user->roles()->edges()->each(function ($edge) { $edge->delete(); });
+        $user->roles()->edges()->each(function ($edge) {
+            $edge->delete();
+        });
     }
 
     public function testEagerLoadingBelongsToMany()
@@ -335,7 +349,9 @@ class BelongsToManyRelationTest extends TestCase
         $this->assertArrayHasKey('roles', $relations);
         $this->assertCount(3, $relations['roles']);
 
-        $edges->each(function ($relation) { $relation->delete(); });
+        $edges->each(function ($relation) {
+            $relation->delete();
+        });
     }
 
     /**

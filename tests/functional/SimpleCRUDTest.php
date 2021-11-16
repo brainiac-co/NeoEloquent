@@ -2,16 +2,16 @@
 
 namespace Vinelab\NeoEloquent\Tests\Functional;
 
-use DateTime;
 use Carbon\Carbon;
+use DateTime;
+use Illuminate\Database\ConnectionResolverInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Laudis\Neo4j\Types\CypherList;
 use Mockery as M;
-use \Illuminate\Database\Eloquent\ModelNotFoundException;
-use Vinelab\NeoEloquent\Tests\TestCase;
 use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Eloquent\SoftDeletes;
-use Illuminate\Database\ConnectionResolverInterface;
+use Vinelab\NeoEloquent\Tests\TestCase;
 
 class Wiz extends Model
 {
@@ -48,7 +48,9 @@ class SimpleCRUDTest extends TestCase
 
         // Mama said, always clean up before you go. =D
         $w = Wiz::all();
-        $w->each(function ($me) { $me->delete(); });
+        $w->each(function ($me) {
+            $me->delete();
+        });
 
         parent::tearDown();
     }
@@ -252,7 +254,7 @@ class SimpleCRUDTest extends TestCase
             $this->assertArrayHasKey('id', $values);
             $this->assertGreaterThanOrEqual(0, $values['id']);
             unset($values['id']);
-            $this->assertTrue(collect($batch)->contains(fn($v) => $v == $values));
+            $this->assertTrue(collect($batch)->contains(fn ($v) => $v == $values));
         }
     }
 

@@ -2,12 +2,12 @@
 
 namespace Vinelab\NeoEloquent\Tests\Functional\QueryingRelations;
 
+use Carbon\Carbon;
 use DateTime;
 use Illuminate\Database\Eloquent\Collection;
 use Mockery as M;
-use Carbon\Carbon;
-use Vinelab\NeoEloquent\Tests\TestCase;
 use Vinelab\NeoEloquent\Eloquent\Model;
+use Vinelab\NeoEloquent\Tests\TestCase;
 
 class QueryingRelationsTest extends TestCase
 {
@@ -76,7 +76,6 @@ class QueryingRelationsTest extends TestCase
         $roleWithTwo->permissions()->saveMany([$permissionOne, $permissionTwo]);
         $userWithTwo->roles()->save($roleWithTwo);
 
-
         // user with a role that has no permission
         $user2 = User::Create(['name' => 'u2']);
         $role2 = Role::create(['alias' => 'nosperm']);
@@ -117,28 +116,34 @@ class QueryingRelationsTest extends TestCase
         $anotherManager->roles()->save($manager);
 
         // check admins
-        $admins = User::whereHas('roles', function ($q) { $q->where('alias', 'admin'); })->get();
+        $admins = User::whereHas('roles', function ($q) {
+            $q->where('alias', 'admin');
+        })->get();
         $this->assertEquals(2, count($admins));
         $expectedAdmins = [$mrAdmin, $anotherAdmin];
         $expectedAdmins = array_map(function ($admin) {
             return $admin->toArray();
         }, $expectedAdmins);
         foreach ($admins as $key => $admin) {
-            $this->assertContains($admin->toArray()['id'], array_map(static fn(array $admin) => $admin['id'], $expectedAdmins));
+            $this->assertContains($admin->toArray()['id'], array_map(static fn (array $admin) => $admin['id'], $expectedAdmins));
         }
         // check editors
-        $editors = User::whereHas('roles', function ($q) { $q->where('alias', 'editor'); })->get();
+        $editors = User::whereHas('roles', function ($q) {
+            $q->where('alias', 'editor');
+        })->get();
         $this->assertEquals(1, count($editors));
         $this->assertEquals($mrsEditor->toArray(), $editors->first()->toArray());
         // check managers
         $expectedManagers = [$mrsManager, $anotherManager];
-        $managers = User::whereHas('roles', function ($q) { $q->where('alias', 'manager'); })->get();
+        $managers = User::whereHas('roles', function ($q) {
+            $q->where('alias', 'manager');
+        })->get();
         $this->assertEquals(2, count($managers));
         $expectedManagers = array_map(function ($manager) {
             return $manager->toArray();
         }, $expectedManagers);
         foreach ($managers as $key => $manager) {
-            $this->assertContains($manager->toArray()['id'], array_map(static fn(array $manager) => $manager['id'], $expectedManagers));
+            $this->assertContains($manager->toArray()['id'], array_map(static fn (array $manager) => $manager['id'], $expectedManagers));
         }
     }
 
@@ -181,8 +186,12 @@ class QueryingRelationsTest extends TestCase
         $user->roles()->save($role);
         $user->account()->save($account);
 
-        $found = User::whereHas('roles', function ($q) use ($role) { $q->where('id', $role->id); })
-            ->whereHas('account', function ($q) use ($account) { $q->where('id', $account->id); })
+        $found = User::whereHas('roles', function ($q) use ($role) {
+            $q->where('id', $role->id);
+        })
+            ->whereHas('account', function ($q) use ($account) {
+                $q->where('id', $account->id);
+            })
             ->where('id', $user->id)->first();
 
         $this->assertInstanceOf(User::class, $found);
@@ -206,9 +215,9 @@ class QueryingRelationsTest extends TestCase
         $roleWithTwo->permissions()->saveMany([$permissionOne, $permissionTwo]);
         $userWithTwo->roles()->save($roleWithTwo);
 
-        $found = User::whereHas('roles', function($q) use($role, $permission) {
+        $found = User::whereHas('roles', function ($q) use ($role, $permission) {
             $q->where($role->getKeyName(), $role->getKey());
-            $q->whereHas('permissions', function($q) use($permission) {
+            $q->whereHas('permissions', function ($q) use ($permission) {
                 $q->where($permission->getKeyName(), $permission->getKey());
             });
         })->get();
@@ -235,9 +244,9 @@ class QueryingRelationsTest extends TestCase
         $roleWithTwo->permissions()->saveMany([$permissionOne, $permissionTwo]);
         $userWithTwo->roles()->save($roleWithTwo);
 
-        $found = User::whereHas('roles', function($q) use($role, $permission) {
+        $found = User::whereHas('roles', function ($q) use ($role, $permission) {
             $q->where('alias', $role->alias);
-            $q->whereHas('permissions', function($q) use($permission) {
+            $q->whereHas('permissions', function ($q) use ($permission) {
                 $q->where('alias', $permission->alias);
             });
         })->get();
@@ -611,7 +620,7 @@ class QueryingRelationsTest extends TestCase
     {
         $user = User::create(['name' => 'cappuccino']);
         $role = Role::createWith(['alias' => 'pikachu'], [
-            'permissions' => ['title' => 'Perr', 'alias' => 'perr']
+            'permissions' => ['title' => 'Perr', 'alias' => 'perr'],
         ]);
 
         $user->roles()->save($role);
@@ -619,7 +628,9 @@ class QueryingRelationsTest extends TestCase
         $user->roles->first()->permissions;
 
         $found = User::with('roles.permissions')
-            ->whereHas('roles', function ($q) use ($role) { $q->where('id', $role->id); })
+            ->whereHas('roles', function ($q) use ($role) {
+                $q->where('id', $role->id);
+            })
             ->first();
 
         $this->assertInstanceOf(User::class, $found);
@@ -638,7 +649,9 @@ class QueryingRelationsTest extends TestCase
         $acc = $role->users->first()->account;
 
         $roleFound = Role::with('users.account')
-            ->whereHas('users', function ($q) use ($user) { $q->where('id', $user->getKey()); })
+            ->whereHas('users', function ($q) use ($user) {
+                $q->where('id', $user->getKey());
+            })
             ->first();
 
         $this->assertInstanceOf('Vinelab\NeoEloquent\Tests\Functional\QueryingRelations\Role', $roleFound);
@@ -659,7 +672,9 @@ class QueryingRelationsTest extends TestCase
         $org = $role->users->first()->organization;
 
         $roleFound = Role::with('users.organization')
-            ->whereHas('users', function ($q) use ($user) { $q->where('id', $user->getKey()); })
+            ->whereHas('users', function ($q) use ($user) {
+                $q->where('id', $user->getKey());
+            })
             ->first();
 
         $this->assertInstanceOf('Vinelab\NeoEloquent\Tests\Functional\QueryingRelations\Role', $roleFound);
@@ -705,9 +720,11 @@ class QueryingRelationsTest extends TestCase
         $yesterday = Carbon::now()->subDay();
         $dt = new DateTime();
 
-        $user = User::createWith(['name' => 'Some Name', 'dob' => $yesterday],
+        $user = User::createWith(
+            ['name' => 'Some Name', 'dob' => $yesterday],
             ['colleagues' => ['name' => 'Protectron', 'dob' => $dt],
-        ]);
+        ]
+        );
         $format = $user->getDateFormat();
 
         $houwe = User::first();
@@ -782,7 +799,7 @@ class QueryingRelationsTest extends TestCase
             ]
         );
 
-        $posts = Post::with(['cover', 'tags'])->get();
+        $posts = Post::with(['cover', 'tags'])->orderBy('id')->get();
 
         $this->assertEquals(2, count($posts));
 
@@ -849,7 +866,7 @@ class User extends Model
 
     public function colleagues()
     {
-        return $this->hasMany(User::class, 'COLLEAGUE_OF');
+        return $this->hasMany(self::class, 'COLLEAGUE_OF');
     }
 
     public function organization()

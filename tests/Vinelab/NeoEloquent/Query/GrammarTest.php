@@ -7,7 +7,6 @@ use Illuminate\Database\Query\Processors\Processor;
 use Mockery as M;
 use Vinelab\NeoEloquent\Query\Builder;
 use Vinelab\NeoEloquent\Query\Grammars\CypherGrammar;
-use Vinelab\NeoEloquent\Query\Grammars\Grammar;
 use Vinelab\NeoEloquent\Tests\TestCase;
 
 class GrammarTest extends TestCase

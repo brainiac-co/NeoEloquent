@@ -204,7 +204,7 @@ abstract class Delegate
      *
      * @return bool
      *
-     * @throws \Vinelab\NeoEloquent\QueryException If no open batch to commit.
+     * @throws QueryException If no open batch to commit.
      */
     public function commitBatch()
     {

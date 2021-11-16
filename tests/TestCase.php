@@ -56,7 +56,7 @@ class TestCase extends PHPUnit
      */
     protected function getConnectionWithConfig($config = null)
     {
-        $connection = is_null($config) ? $this->dbConfig['connections']['default'] :
+        $connection = null === $config ? $this->dbConfig['connections']['default'] :
                                          $this->dbConfig['connections'][$config];
 
         return new Connection($connection);
@@ -83,6 +83,7 @@ class TestCase extends PHPUnit
 
         return $connection->getClient();
     }
+
     /**
      * get the node by the given id.
      *

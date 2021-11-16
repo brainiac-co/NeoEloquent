@@ -364,7 +364,7 @@ class EloquentBuilderTest extends TestCase
     {
         $this->query->shouldReceive('getGrammar')->andReturn(new CypherGrammar());
 
-        $resultSet = new CypherList([ new CypherMap(['node' => new \Laudis\Neo4j\Types\Node(1, new CypherList(), new CypherMap())])]);
+        $resultSet = new CypherList([new CypherMap(['node' => new \Laudis\Neo4j\Types\Node(1, new CypherList(), new CypherMap())])]);
 
         $this->query->shouldReceive('where')->once()->with('id(n)', '=', 1);
         $this->query->shouldReceive('from')->once()->with('Model')->andReturn(['Model']);
@@ -377,7 +377,7 @@ class EloquentBuilderTest extends TestCase
         $this->model->shouldReceive('hasNamedScope')->once()->andReturn(false);
 
         $result = M::mock('Neoxygen\NeoClient\Formatter\Result');
-        $collection = new \Illuminate\Support\Collection(array($result));
+        $collection = new \Illuminate\Support\Collection([$result]);
         $this->model->shouldReceive('newCollection')->once()->andReturn($collection);
         $this->model->shouldReceive('getAttributes')->once()->andReturn([]);
         $this->model->shouldReceive('setConnection')->once();
@@ -520,7 +520,7 @@ class EloquentBuilderTest extends TestCase
                     ->shouldReceive('getConnectionName')->once()->andReturn('default')
                     ->shouldReceive('newFromBuilder')->once()
                         ->with($results)->andReturn($user)
-                    ->shouldReceive('getAttributes')->once()->andReturn([]);;
+                    ->shouldReceive('getAttributes')->once()->andReturn([]);
 
         $this->builder->setModel($this->model);
 

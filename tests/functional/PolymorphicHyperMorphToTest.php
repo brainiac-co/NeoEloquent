@@ -2,13 +2,13 @@
 
 namespace Vinelab\NeoEloquent\Tests\Functional\Relations\HyperMorphTo;
 
+use Illuminate\Database\ConnectionResolverInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Mockery as M;
-use \Illuminate\Database\Eloquent\ModelNotFoundException;
-use Vinelab\NeoEloquent\Tests\TestCase;
-use Vinelab\NeoEloquent\Eloquent\Model;
 use Vinelab\NeoEloquent\Eloquent\Edges\EdgeOut;
 use Vinelab\NeoEloquent\Eloquent\Edges\HyperEdge;
-use Illuminate\Database\ConnectionResolverInterface;
+use Vinelab\NeoEloquent\Eloquent\Model;
+use Vinelab\NeoEloquent\Tests\TestCase;
 
 class PolymorphicHyperMorphToTest extends TestCase
 {
@@ -300,7 +300,9 @@ class PolymorphicHyperMorphToTest extends TestCase
 
         $edges = $user->comments($post)->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
         $this->assertTrue(in_array($anotherCommentOnPost->id, $edgesIds));
         $this->assertFalse(in_array($commentOnPost->id, $edgesIds));
 
@@ -331,7 +333,9 @@ class PolymorphicHyperMorphToTest extends TestCase
 
         $edges = $user->comments($post)->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
         $this->assertTrue(in_array($anotherCommentOnPost->id, $edgesIds));
         $this->assertTrue(in_array($commentOnPost->id, $edgesIds));
 
@@ -365,7 +369,9 @@ class PolymorphicHyperMorphToTest extends TestCase
 
         $edges = $user->comments($post)->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
         $this->assertTrue(in_array($anotherCommentOnPost->id, $edgesIds));
         $this->assertTrue(in_array($commentOnPost->id, $edgesIds));
 

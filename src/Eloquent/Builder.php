@@ -8,7 +8,6 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
 use Laudis\Neo4j\Types\Node;
 use Vinelab\NeoEloquent\Helpers;
-use Vinelab\NeoEloquent\QueryException;
 use Vinelab\NeoEloquent\Traits\ResultTrait;
 
 class Builder extends IlluminateBuilder

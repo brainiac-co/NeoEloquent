@@ -2,10 +2,9 @@
 
 namespace Vinelab\NeoEloquent\Tests\Functional\Relations\HasMany;
 
-use Illuminate\Database\Eloquent\Collection;
 use Mockery as M;
-use Vinelab\NeoEloquent\Tests\TestCase;
 use Vinelab\NeoEloquent\Eloquent\Model;
+use Vinelab\NeoEloquent\Tests\TestCase;
 
 class Book extends Model
 {
@@ -245,7 +244,9 @@ class HasManyRelationTest extends TestCase
         $this->assertArrayHasKey('books', $relations);
         $this->assertCount(count($novel), $relations['books']->toArray());
 
-        $booksIds = array_map(function ($book) { return $book->getKey(); }, $novel);
+        $booksIds = array_map(function ($book) {
+            return $book->getKey();
+        }, $novel);
 
         foreach ($relations['books'] as $key => $book) {
             $this->assertTrue(in_array($book->getKey(), $booksIds));
@@ -303,7 +304,9 @@ class HasManyRelationTest extends TestCase
 
         $edges = $author->books()->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         $this->assertTrue(in_array($got->id, $edgesIds));
         $this->assertTrue(in_array($cok->id, $edgesIds));
@@ -323,7 +326,9 @@ class HasManyRelationTest extends TestCase
 
         $edges = $author->books()->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         $this->assertTrue(in_array($got->id, $edgesIds));
         $this->assertTrue(in_array($cok->id, $edgesIds));
@@ -347,7 +352,9 @@ class HasManyRelationTest extends TestCase
 
         $edges = $author->books()->edges();
 
-        $edgesIds = array_map(function ($edge) { return $edge->getRelated()->getKey(); }, $edges->toArray());
+        $edgesIds = array_map(function ($edge) {
+            return $edge->getRelated()->getKey();
+        }, $edges->toArray());
 
         $count = array_count_values((array) $got->id);
 
@@ -356,7 +363,7 @@ class HasManyRelationTest extends TestCase
         $this->assertTrue(in_array($sos->id, $edgesIds));
         $this->assertTrue(in_array($got->id, $edgesIds));
 
-        $expectedEdgesTypes = array('Storm', 'Clash', 'Game');
+        $expectedEdgesTypes = ['Storm', 'Clash', 'Game'];
 
         foreach ($edges as $key => $edge) {
             $attributes = $edge->toArray();

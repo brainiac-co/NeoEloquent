@@ -4,6 +4,7 @@ namespace Vinelab\NeoEloquent\Eloquent\Edges;
 
 use Vinelab\NeoEloquent\Eloquent\Builder;
 use Vinelab\NeoEloquent\Eloquent\Model;
+use Vinelab\NeoEloquent\Exceptions\NoEdgeDirectionException;
 
 class HyperEdge extends Edge
 {
@@ -71,7 +72,7 @@ class HyperEdge extends Edge
      * Initialize the relationship by setting up nodes and edges,.
      *
      *
-     * @throws \Vinelab\NeoEloquent\NoEdgeDirectionException If $direction is not set on the inheriting relation.
+     * @throws NoEdgeDirectionException If $direction is not set on the inheriting relation.
      */
     public function initRelation()
     {
